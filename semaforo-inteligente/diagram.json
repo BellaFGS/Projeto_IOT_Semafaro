@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "author": "Bella",
+  "editor": "wokwi",
+  "parts": [
+    {
+      "type": "board-esp32-devkit-c-v4",
+      "id": "esp",
+      "top": 0,
+      "left": 0,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-hc-sr04",
+      "id": "sensor",
+      "top": -50,
+      "left": 250,
+      "attrs": {}
+    }
+  ],
+  "connections": [
+    ["sensor:VCC", "esp:5V", "red", []],
+    ["sensor:GND", "esp:GND.1", "black", []],
+    ["sensor:TRIG", "esp:D5", "green", []],
+    ["sensor:ECHO", "esp:D18", "blue", []]
+  ],
+  "dependencies": {},
+  "serialMonitor": {
+    "display": "always",
+    "newline": "lf"
+  }
+}
