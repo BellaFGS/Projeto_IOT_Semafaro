@@ -63,6 +63,3 @@ As principais tecnologias previstas para o desenvolvimento são:
 - **PlatformIO** - desenvolvimento e gerenciamento do firmware.
 
 > As tecnologias utilizadas podem sofrer alterações durante o desenvolvimento do projeto.
-
-## 📁 Estrutura do projeto
-
