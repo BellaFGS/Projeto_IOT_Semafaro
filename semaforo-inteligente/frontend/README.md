@@ -63,7 +63,9 @@ frontend/
 ├── package.json                 ← Dependências e scripts do projeto
 ├── vite.config.ts               ← Configuração do Vite
 ├── src/
-│   ├── assets/game/character/   ← Sprites de animação do personagem (player1 a player10)
+│   ├── assets/game/
+│   │   ├── character/           ← Sprites de animação do personagem (player1 a player10)
+│   │   └── cenario/             ← Sprites do cenário (rua.png, prédios, fundo, etc.)
 │   ├── components/
 │   │   ├── dashboard/
 │   │   │   └── IoTMetricsHUD.tsx ← Painel de métricas do semáforo e alertas IoT

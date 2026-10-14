@@ -1,5 +1,9 @@
 import React from 'react';
 import type { LightState } from '../../types/traffic';
+import semaforoImg from '../../assets/game/trafficlight/semaforo.png';
+import redLedImg from '../../assets/game/trafficlight/red.png';
+import yellowLedImg from '../../assets/game/trafficlight/yellow.png';
+import greenLedImg from '../../assets/game/trafficlight/green.png';
 
 interface TrafficLightProps {
   state: LightState;
@@ -31,51 +35,75 @@ export const TrafficLight: React.FC<TrafficLightProps> = ({ state, remainingTime
         {remainingTime < 10 ? `0${remainingTime}` : remainingTime}s
       </div>
 
-      {/* Caixa do Semáforo */}
+      {/* Semáforo com imagem PNG de base */}
       <div style={{
+        position: 'relative',
         width: '64px',
-        background: '#1a1d24',
-        border: '3px solid #2d333b',
-        borderRadius: '16px',
-        padding: '10px 8px',
         display: 'flex',
         flexDirection: 'column',
-        gap: '10px',
         alignItems: 'center',
-        boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
       }}>
-        {/* Luz Vermelha */}
-        <div style={{
-          width: '42px',
-          height: '42px',
-          borderRadius: '50%',
-          backgroundColor: state === 'RED' ? '#ff2a2a' : '#3a1212',
-          border: '2px solid ' + (state === 'RED' ? '#ff6b6b' : '#220000'),
-          boxShadow: state === 'RED' ? '0 0 20px #ff2a2a, inset 0 0 10px #ffffff' : 'none',
-          transition: 'all 0.25s ease',
-        }} />
+        {/* Imagem base do semáforo (LEDs desligados) */}
+        <img
+          src={semaforoImg}
+          alt="Semáforo"
+          style={{
+            width: '64px',
+            height: 'auto',
+            display: 'block',
+          }}
+        />
 
-        {/* Luz Amarela */}
-        <div style={{
-          width: '42px',
-          height: '42px',
-          borderRadius: '50%',
-          backgroundColor: state === 'YELLOW' ? '#ffd000' : '#3d3200',
-          border: '2px solid ' + (state === 'YELLOW' ? '#ffe666' : '#261f00'),
-          boxShadow: state === 'YELLOW' ? '0 0 20px #ffd000, inset 0 0 10px #ffffff' : 'none',
-          transition: 'all 0.25s ease',
-        }} />
+        {/* LED Vermelho - posicionado sobre a luz vermelha da imagem */}
+        {state === 'RED' && (
+          <img
+            src={redLedImg}
+            alt="LED Vermelho"
+            style={{
+              position: 'absolute',
+              top: '8px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              width: '42px',
+              height: '42px',
+              display: 'block',
+            }}
+          />
+        )}
 
-        {/* Luz Verde */}
-        <div style={{
-          width: '42px',
-          height: '42px',
-          borderRadius: '50%',
-          backgroundColor: state === 'GREEN' ? '#00e676' : '#043015',
-          border: '2px solid ' + (state === 'GREEN' ? '#69f0ae' : '#011c0c'),
-          boxShadow: state === 'GREEN' ? '0 0 20px #00e676, inset 0 0 10px #ffffff' : 'none',
-          transition: 'all 0.25s ease',
-        }} />
+        {/* LED Amarelo - posicionado sobre a luz amarela da imagem */}
+        {state === 'YELLOW' && (
+          <img
+            src={yellowLedImg}
+            alt="LED Amarelo"
+            style={{
+              position: 'absolute',
+              top: '40px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              width: '42px',
+              height: '42px',
+              display: 'block',
+            }}
+          />
+        )}
+
+        {/* LED Verde - posicionado sobre a luz verde da imagem */}
+        {state === 'GREEN' && (
+          <img
+            src={greenLedImg}
+            alt="LED Verde"
+            style={{
+              position: 'absolute',
+              top: '72px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              width: '42px',
+              height: '42px',
+              display: 'block',
+            }}
+          />
+        )}
       </div>
 
       {/* Poste de sustentação */}
