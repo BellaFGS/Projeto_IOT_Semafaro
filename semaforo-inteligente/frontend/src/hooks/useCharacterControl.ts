@@ -17,9 +17,9 @@ interface UseCharacterControlResult {
 }
 
 const INITIAL_POSITION: CharacterPosition = { x: 80 };
-const MOVE_SPEED = 7;
+const MOVE_SPEED = 3;
 const TOTAL_FRAMES = 10;
-const FRAME_DURATION = 90; // ms por frame da caminhada
+const FRAME_DURATION = 115; // ms por frame da caminhada (sincronizado com o passo mais calmo)
 
 export function useCharacterControl(): UseCharacterControlResult {
   const [position, setPosition] = useState<CharacterPosition>(INITIAL_POSITION);
@@ -33,13 +33,13 @@ export function useCharacterControl(): UseCharacterControlResult {
 
   const moveLeft = useCallback(() => {
     setPosition(prev => ({
-      x: Math.max(10, prev.x - MOVE_SPEED),
+      x: Math.max(-50, prev.x - MOVE_SPEED),
     }));
   }, []);
 
   const moveRight = useCallback(() => {
     setPosition(prev => ({
-      x: Math.min(window.innerWidth - 90, prev.x + MOVE_SPEED),
+      x: Math.min(window.innerWidth - 190, prev.x + MOVE_SPEED),
     }));
   }, []);
 

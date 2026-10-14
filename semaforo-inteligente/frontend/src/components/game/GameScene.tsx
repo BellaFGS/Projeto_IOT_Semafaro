@@ -5,6 +5,9 @@ import { IoTMetricsHUD } from '../dashboard/IoTMetricsHUD';
 import { TrafficLight } from './TrafficLight';
 import { ServoBarrier } from './ServoBarrier';
 
+// Importar imagem da rua (sprites do cenário)
+import ruaImg from '../../assets/game/cenario/rua.png';
+
 // Importar sprites do player
 import player1 from '../../assets/game/character/player1.png';
 import player2 from '../../assets/game/character/player2.png';
@@ -160,58 +163,35 @@ export const GameScene: React.FC = () => {
         `,
       }} />
 
-      {/* Meio-Fio / Calçada onde o pedestre caminha */}
-      <div style={{
-        position: 'absolute',
-        bottom: '30%',
-        left: 0,
-        width: '100%',
-        height: '24px',
-        backgroundColor: '#64748b',
-        borderTop: '3px solid #94a3b8',
-        boxShadow: '0 4px 10px rgba(0,0,0,0.5)',
-        zIndex: 2,
-      }} />
-
-      {/* Pista / Asfalto em Pixel Art */}
+      {/* Rua em Imagem Pixel Art (onde o personagem pisa) */}
       <div style={{
         position: 'absolute',
         bottom: 0,
         left: 0,
         width: '100%',
         height: '30%',
-        backgroundColor: '#1f242d',
-        borderTop: '4px solid #334155',
+        backgroundColor: '#000000',
         zIndex: 1,
+        overflow: 'hidden',
       }}>
-        {/* Linhas pontilhadas do asfalto */}
-        <div style={{
-          position: 'absolute',
-          top: '45%',
-          left: 0,
-          width: '100%',
-          height: '6px',
-          background: 'repeating-linear-gradient(90deg, #facc15 0px, #facc15 35px, transparent 35px, transparent 70px)',
-          opacity: 0.8,
-        }} />
-
-        {/* Faixa de Pedestres Zebrada */}
-        <div style={{
-          position: 'absolute',
-          left: '320px',
-          top: 0,
-          width: '140px',
-          height: '100%',
-          background: 'repeating-linear-gradient(90deg, rgba(255,255,255,0.85) 0px, rgba(255,255,255,0.85) 18px, transparent 18px, transparent 36px)',
-          boxShadow: 'inset 0 0 10px rgba(0,0,0,0.4)',
-        }} />
+        <img
+          src={ruaImg}
+          alt="Rua e Faixa de Pedestre"
+          className="pixel-art"
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'fill',
+            display: 'block',
+          }}
+        />
       </div>
 
       {/* Semáforo Inteligente (posicionado ao lado da faixa) */}
       <div style={{
         position: 'absolute',
-        left: '240px',
-        bottom: '30%',
+        left: 'calc(37% - 85px)',
+        bottom: '22%',
         zIndex: 4,
       }}>
         <TrafficLight
@@ -223,8 +203,8 @@ export const GameScene: React.FC = () => {
       {/* Cancela / Servo Motor (posicionado no bordo da via) */}
       <div style={{
         position: 'absolute',
-        left: '490px',
-        bottom: '30%',
+        left: 'calc(72% + 15px)',
+        bottom: '22%',
         zIndex: 4,
       }}>
         <ServoBarrier isOpen={traffic.servoAngle > 30} />
@@ -236,8 +216,8 @@ export const GameScene: React.FC = () => {
         title="Clique para acionar o botão de pedestre"
         style={{
           position: 'absolute',
-          left: '200px',
-          bottom: '31%',
+          left: 'calc(37% - 135px)',
+          bottom: '22%',
           zIndex: 4,
           cursor: 'pointer',
           display: 'flex',
@@ -271,9 +251,10 @@ export const GameScene: React.FC = () => {
         style={{
           position: 'absolute',
           left: `${position.x}px`,
-          bottom: '29.5%',
+          bottom: '22%',
           zIndex: 5,
           transform: facing === 'left' ? 'scaleX(-1)' : 'scaleX(1)',
+          transformOrigin: 'bottom center',
           transition: 'transform 0.1s ease',
           pointerEvents: 'none',
         }}
@@ -283,10 +264,10 @@ export const GameScene: React.FC = () => {
           alt={`Player Frame ${currentFrame}`}
           className="pixel-art"
           style={{
-            width: '64px',
-            height: '96px',
+            width: '240px',
+            height: '240px',
             objectFit: 'contain',
-            filter: 'drop-shadow(0 6px 6px rgba(0,0,0,0.5))',
+            filter: 'drop-shadow(0 10px 10px rgba(0,0,0,0.55))',
           }}
         />
       </div>
