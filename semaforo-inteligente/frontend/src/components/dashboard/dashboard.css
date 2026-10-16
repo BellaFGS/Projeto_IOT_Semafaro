@@ -62,59 +62,6 @@
   color: var(--px-muted);
 }
 
-.dash-pipeline {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  flex-wrap: wrap;
-}
-
-.dash-hop {
-  font-family: var(--font-title);
-  font-size: 11px;
-  padding: 5px 6px;
-  color: var(--px-dim);
-  background: var(--px-ink);
-  border: 2px solid var(--px-line);
-}
-
-.dash-hop.live {
-  color: var(--px-ink);
-  background: var(--px-green);
-  border-color: var(--px-green);
-}
-
-.dash-hop.sim {
-  color: var(--px-ink);
-  background: var(--px-yellow);
-  border-color: var(--px-yellow);
-}
-
-.dash-hop-arrow {
-  width: 0;
-  height: 0;
-  border-top: 4px solid transparent;
-  border-bottom: 4px solid transparent;
-  border-left: 5px solid var(--px-dim);
-}
-
-.dash-source {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-family: var(--font-title);
-  font-size: 12px;
-  padding: 6px 8px;
-  background: var(--px-ink);
-  border: 2px solid currentColor;
-}
-
-.dash-source i {
-  width: 8px;
-  height: 8px;
-  background: currentColor;
-}
-
 .dash-toggle {
   font-family: var(--font-title);
   font-size: 12px;
@@ -314,9 +261,6 @@
   flex: none;
 }
 
-@media (max-width: 760px) {
-  .dash-pipeline { display: none; }
-}
 
 /* Linha de componente do circuito: nome + pinos à esquerda, estado à direita */
 .dash-pin {

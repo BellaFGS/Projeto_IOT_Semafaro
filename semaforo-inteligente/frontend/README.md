@@ -48,9 +48,8 @@ O painel cobre os elementos pedidos na Etapa 7 do roteiro:
 | Histórico | Card **HISTÓRICO** com as últimas trocas de sinal e alertas, com horário |
 | Controle dos atuadores | Automático: o Node-RED muda o tempo de verde do ESP32 conforme o fluxo. O dashboard não tem botões |
 
-Na barra superior, o **pipeline** `SENSOR ▸ ESP32 ▸ MQTT ▸ NODE-RED ▸ DASHBOARD` acende conforme os dados chegam
-(amarelo na simulação, verde com dados reais), e o selo à direita mostra a fonte:
-`SIMULAÇÃO WOKWI`, `AO VIVO`, `CONECTANDO`, `SEM DADOS` (mais de 5 s sem mensagem) ou `NODE-RED OFFLINE`.
+Se os dados param de chegar (Node-RED fora do ar ou mais de 5 s sem mensagem), o card **CIRCUITO WOKWI** passa para
+`OFF`. Antes da primeira mensagem, os valores aparecem como `--`.
 
 No cenário, o semáforo do pórtico acende a lâmpada recebida na telemetria, o visor mostra o tempo restante
 e o botão de pedestre na calçada pisca quando há pedido de travessia. O único controle do usuário é mover o
@@ -595,7 +594,7 @@ O Wokwi online não alcança `localhost`; nesse caso use o broker público ou o 
 | Carro sobre a faixa | Distância < 20 cm | Alerta `VEICULO_PROXIMO` |
 | ESP32 offline | Last Will `{"online":false}` | Modo `ATENCAO`, alerta crítico e status OFF no dashboard |
 | Wi-Fi fraco | RSSI < −80 dBm | Alerta `SINAL_FRACO` |
-| Node-RED fora do ar | WebSocket fechado | Dashboard mostra `NODE-RED OFFLINE` e reconecta sozinho |
+| Node-RED fora do ar | WebSocket fechado | Circuito `OFF` no dashboard, que reconecta sozinho |
 
 ---
 
@@ -603,13 +602,13 @@ O Wokwi online não alcança `localhost`; nesse caso use o broker público ou o 
 
 | # | Teste | Como provocar | Resultado esperado no dashboard |
 |---|---|---|---|
-| 1 | Fluxo completo | Wokwi rodando, Node-RED ativo, abrir `?fonte=ws` | Selo `AO VIVO`, pipeline verde, sinal do pórtico igual aos LEDs do Wokwi |
+| 1 | Fluxo completo | Wokwi rodando, Node-RED ativo, abrir `?fonte=ws` | Circuito `ON`, sinal do pórtico igual aos LEDs do Wokwi |
 | 2 | Contagem | Arrastar o HC-SR04 abaixo de 50 cm e voltar | Total de carros +1 e "Carro na faixa" enquanto estiver perto |
 | 3 | Fluxo intenso | Passar 8 carros em menos de 1 min | Modo `FLUXO INTENSO`, alerta, verde seguinte com 16 s |
 | 4 | Pedestre | Apertar o botão no verde | Contagem cai para 3 s, botão da calçada pisca, vermelho com 10 s |
 | 5 | Carro na faixa | Distância < 20 cm | Alerta "Veículo sobre a faixa" |
-| 6 | ESP32 cai | Parar a simulação do Wokwi | Após 5 s: selo `SEM DADOS`. Após ~25 s (Last Will do broker): circuito `OFF`, alerta crítico, modo `ATENÇÃO` |
-| 7 | Node-RED cai | Parar o Node-RED | `NODE-RED OFFLINE`; ao religar, volta sozinho |
+| 6 | ESP32 cai | Parar a simulação do Wokwi | Após 5 s sem mensagem: circuito `OFF`. Após ~25 s (Last Will do broker): alerta crítico e modo `ATENÇÃO` |
+| 7 | Node-RED cai | Parar o Node-RED | Circuito `OFF`; ao religar, os dados voltam sozinhos |
 
 ---
 
@@ -649,7 +648,7 @@ frontend/
 
 ## 9. Identidade visual
 
-- **Fontes:** Silkscreen nos títulos, selos e números (estilo 8-bit, com acentos) e Pixelify Sans no texto corrido.
+- **Fontes:** Silkscreen nos títulos, etiquetas e números (estilo 8-bit, com acentos) e Pixelify Sans no texto corrido.
 - **Painéis:** azul-asfalto `#161a32` com borda dura de 4 px `#0b0d1a`, realce interno `#333b72` e sombra deslocada sem blur.
   Nada de cantos arredondados nem desfoque.
 - **Cores:** vermelho `#ff4d5e`, amarelo `#ffc23d` e verde `#3ee87a` são as cores do sinal e também de erro, atenção e ok.
