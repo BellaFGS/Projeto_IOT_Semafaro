@@ -6,121 +6,85 @@ import yellowLedImg from '../../assets/game/trafficlight/yellow.png';
 import greenLedImg from '../../assets/game/trafficlight/green.png';
 
 interface TrafficLightProps {
-  state: LightState;
-  remainingTime: number;
+  /** null enquanto não chegou nenhuma telemetria: todas as lâmpadas apagadas. */
+  state: LightState | null;
+  remainingTime: number | null;
 }
+
+const TIMER_COLOR: Record<LightState, string> = {
+  RED: '#ff4d4d',
+  YELLOW: '#ffcc00',
+  GREEN: '#00e676',
+};
+
+const LED_IMG: Record<LightState, string> = {
+  RED: redLedImg,
+  YELLOW: yellowLedImg,
+  GREEN: greenLedImg,
+};
+
+/*
+ * Lâmpadas apagadas no sprite (940x727): x 842–884, y 76 / 128 / 180, 43px.
+ * Valores em % do sprite para o LED aceso acompanhar o tamanho renderizado.
+ */
+const LED_LEFT = `${(842 / 940) * 100}%`;
+const LED_SIZE = `${(43 / 940) * 100}%`;
+const LED_TOP: Record<LightState, string> = {
+  RED: `${(76 / 727) * 100}%`,
+  YELLOW: `${(128 / 727) * 100}%`,
+  GREEN: `${(180 / 727) * 100}%`,
+};
 
 export const TrafficLight: React.FC<TrafficLightProps> = ({ state, remainingTime }) => {
   return (
     <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
       position: 'relative',
+      width: '100%',
+      lineHeight: 0,
     }}>
-      {/* Placa do Contador Regressivo no Topo */}
+      <img
+        src={semaforoImg}
+        alt="Semáforo e placa Cuidado Pedestres"
+        className="pixel-art"
+        style={{
+          width: '100%',
+          height: 'auto',
+          display: 'block',
+        }}
+      />
+
+      {/* LED aceso sobre a lâmpada apagada correspondente */}
+      {state && <img
+        src={LED_IMG[state]}
+        alt={`Luz ${state}`}
+        className="pixel-art"
+        style={{
+          position: 'absolute',
+          left: LED_LEFT,
+          top: LED_TOP[state],
+          width: LED_SIZE,
+          height: 'auto',
+          display: 'block',
+          pointerEvents: 'none',
+        }}
+      />}
+
       <div style={{
+        position: 'absolute',
+        left: '72%',
+        top: '3%',
         background: '#0d1117',
         border: '2px solid #30363d',
-        borderRadius: '6px',
-        padding: '3px 10px',
-        marginBottom: '6px',
-        color: state === 'RED' ? '#ff4d4d' : state === 'YELLOW' ? '#ffcc00' : '#00e676',
-        fontFamily: 'monospace',
-        fontSize: '18px',
-        fontWeight: 'bold',
-        textShadow: '0 0 8px currentColor',
-        boxShadow: '0 4px 10px rgba(0,0,0,0.5)',
+        borderRadius: '4px',
+        padding: '1px 6px',
+        color: state ? TIMER_COLOR[state] : '#5d6496',
+        fontFamily: 'var(--font-title)',
+        fontSize: '13px',
+        lineHeight: 1.3,
+        pointerEvents: 'none',
       }}>
-        {remainingTime < 10 ? `0${remainingTime}` : remainingTime}s
+        {remainingTime === null ? '--' : String(remainingTime).padStart(2, '0')}s
       </div>
-
-      {/* Semáforo com imagem PNG de base */}
-      <div style={{
-        position: 'relative',
-        width: '64px',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-      }}>
-        {/* Imagem base do semáforo (LEDs desligados) */}
-        <img
-          src={semaforoImg}
-          alt="Semáforo"
-          style={{
-            width: '64px',
-            height: 'auto',
-            display: 'block',
-          }}
-        />
-
-        {/* LED Vermelho - posicionado sobre a luz vermelha da imagem */}
-        {state === 'RED' && (
-          <img
-            src={redLedImg}
-            alt="LED Vermelho"
-            style={{
-              position: 'absolute',
-              top: '8px',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              width: '42px',
-              height: '42px',
-              display: 'block',
-            }}
-          />
-        )}
-
-        {/* LED Amarelo - posicionado sobre a luz amarela da imagem */}
-        {state === 'YELLOW' && (
-          <img
-            src={yellowLedImg}
-            alt="LED Amarelo"
-            style={{
-              position: 'absolute',
-              top: '40px',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              width: '42px',
-              height: '42px',
-              display: 'block',
-            }}
-          />
-        )}
-
-        {/* LED Verde - posicionado sobre a luz verde da imagem */}
-        {state === 'GREEN' && (
-          <img
-            src={greenLedImg}
-            alt="LED Verde"
-            style={{
-              position: 'absolute',
-              top: '72px',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              width: '42px',
-              height: '42px',
-              display: 'block',
-            }}
-          />
-        )}
-      </div>
-
-      {/* Poste de sustentação */}
-      <div style={{
-        width: '12px',
-        height: '95px',
-        backgroundColor: '#30363d',
-        boxShadow: 'inset 2px 0 0 #484f58, 2px 0 6px rgba(0,0,0,0.4)',
-      }} />
-
-      {/* Base do poste */}
-      <div style={{
-        width: '32px',
-        height: '8px',
-        backgroundColor: '#21262d',
-        borderRadius: '3px 3px 0 0',
-      }} />
     </div>
   );
 };

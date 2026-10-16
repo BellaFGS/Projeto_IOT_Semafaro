@@ -5,3 +5,4 @@
  */
 
 export * from './useCharacterControl';
+export * from './useTrafficTelemetry';
