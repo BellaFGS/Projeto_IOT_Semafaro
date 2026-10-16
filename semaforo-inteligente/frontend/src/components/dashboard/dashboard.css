@@ -1,0 +1,336 @@
+.dash {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.dash > * {
+  pointer-events: auto;
+}
+
+/* ---------- Barra superior ---------- */
+.dash-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 8px 12px;
+}
+
+.dash-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-right: auto;
+}
+
+.dash-logo {
+  display: grid;
+  gap: 2px;
+  padding: 3px;
+  background: var(--px-ink);
+}
+
+.dash-logo span {
+  width: 8px;
+  height: 8px;
+  background: var(--px-dim);
+}
+
+.dash-logo span.on-RED { background: var(--px-red); }
+.dash-logo span.on-YELLOW { background: var(--px-yellow); }
+.dash-logo span.on-GREEN { background: var(--px-green); }
+
+.dash-brand h1 {
+  font-size: 16px;
+  color: var(--px-text);
+}
+
+.dash-brand h1 b {
+  color: var(--px-yellow);
+  font-weight: normal;
+}
+
+.dash-brand p {
+  font-size: 13px;
+  color: var(--px-muted);
+}
+
+.dash-pipeline {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.dash-hop {
+  font-family: var(--font-title);
+  font-size: 11px;
+  padding: 5px 6px;
+  color: var(--px-dim);
+  background: var(--px-ink);
+  border: 2px solid var(--px-line);
+}
+
+.dash-hop.live {
+  color: var(--px-ink);
+  background: var(--px-green);
+  border-color: var(--px-green);
+}
+
+.dash-hop.sim {
+  color: var(--px-ink);
+  background: var(--px-yellow);
+  border-color: var(--px-yellow);
+}
+
+.dash-hop-arrow {
+  width: 0;
+  height: 0;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  border-left: 5px solid var(--px-dim);
+}
+
+.dash-source {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-title);
+  font-size: 12px;
+  padding: 6px 8px;
+  background: var(--px-ink);
+  border: 2px solid currentColor;
+}
+
+.dash-source i {
+  width: 8px;
+  height: 8px;
+  background: currentColor;
+}
+
+.dash-toggle {
+  font-family: var(--font-title);
+  font-size: 12px;
+  color: var(--px-ink);
+  background: var(--px-cyan);
+  border: none;
+  padding: 8px 10px;
+  box-shadow: inset -3px -3px 0 rgba(0, 0, 0, 0.3), 3px 3px 0 var(--px-ink);
+  cursor: pointer;
+}
+
+.dash-toggle:active {
+  transform: translate(2px, 2px);
+  box-shadow: inset -3px -3px 0 rgba(0, 0, 0, 0.3), 1px 1px 0 var(--px-ink);
+}
+
+/* ---------- Cartões ---------- */
+.dash-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 8px;
+}
+
+.dash-card {
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 128px;
+}
+
+.dash-card h2 {
+  font-family: var(--font-title);
+  font-size: 11px;
+  color: var(--px-muted);
+  font-weight: normal;
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.dash-big {
+  font-family: var(--font-title);
+  font-size: 24px;
+  line-height: 1.1;
+}
+
+.dash-big small {
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--px-muted);
+  margin-left: 4px;
+}
+
+.dash-sub {
+  font-size: 14px;
+  color: var(--px-muted);
+}
+
+.dash-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.dash-tag {
+  font-family: var(--font-title);
+  font-size: 11px;
+  padding: 4px 6px;
+  color: var(--px-ink);
+  background: var(--px-muted);
+}
+
+.c-RED { color: var(--px-red); }
+.c-YELLOW { color: var(--px-yellow); }
+.c-GREEN { color: var(--px-green); }
+.c-cyan { color: var(--px-cyan); }
+.c-violet { color: var(--px-violet); }
+.c-muted { color: var(--px-muted); }
+
+.bg-RED, .bg-critical { background: var(--px-red); }
+.bg-YELLOW, .bg-warning { background: var(--px-yellow); }
+.bg-GREEN { background: var(--px-green); }
+.bg-info { background: var(--px-cyan); }
+
+/* Barra segmentada de progresso */
+.px-segments {
+  display: flex;
+  gap: 2px;
+  height: 8px;
+}
+
+.px-segments span {
+  flex: 1;
+  background: var(--px-ink);
+}
+
+/* LEDs do ESP32 */
+.px-leds {
+  display: flex;
+  gap: 6px;
+}
+
+.px-led {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-title);
+  font-size: 10px;
+  color: var(--px-dim);
+}
+
+.px-led i {
+  width: 10px;
+  height: 10px;
+  background: var(--px-ink);
+  border: 2px solid var(--px-line);
+}
+
+.px-led.on { color: var(--px-text); }
+.px-led.on.RED i { background: var(--px-red); border-color: var(--px-red); box-shadow: 0 0 0 2px rgba(255, 77, 94, 0.3); }
+.px-led.on.YELLOW i { background: var(--px-yellow); border-color: var(--px-yellow); box-shadow: 0 0 0 2px rgba(255, 194, 61, 0.3); }
+.px-led.on.GREEN i { background: var(--px-green); border-color: var(--px-green); box-shadow: 0 0 0 2px rgba(62, 232, 122, 0.3); }
+
+/* Gráficos */
+.px-chart {
+  width: 100%;
+  height: 40px;
+  display: block;
+  background: var(--px-ink);
+  shape-rendering: crispEdges;
+}
+
+/* Barras de sinal Wi-Fi */
+.px-rssi {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 14px;
+}
+
+.px-rssi span {
+  width: 4px;
+  background: var(--px-ink);
+}
+
+.px-rssi span.on { background: var(--px-green); }
+.px-rssi.weak span.on { background: var(--px-yellow); }
+
+/* Alertas e eventos */
+.dash-alerts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  font-size: 15px;
+}
+
+.dash-alert {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dash-alert i,
+.dash-event i {
+  width: 8px;
+  height: 8px;
+  flex: none;
+}
+
+.dash-events {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 14px;
+  overflow: hidden;
+}
+
+.dash-event {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  line-height: 1.15;
+}
+
+.dash-event time {
+  font-family: var(--font-title);
+  font-size: 10px;
+  color: var(--px-dim);
+}
+
+.dash-event time {
+  flex: none;
+}
+
+@media (max-width: 760px) {
+  .dash-pipeline { display: none; }
+}
+
+/* Linha de componente do circuito: nome + pinos à esquerda, estado à direita */
+.dash-pin {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 14px;
+}
+
+.dash-pin em {
+  font-style: normal;
+  font-family: var(--font-title);
+  font-size: 10px;
+  color: var(--px-dim);
+  margin-left: 4px;
+}
