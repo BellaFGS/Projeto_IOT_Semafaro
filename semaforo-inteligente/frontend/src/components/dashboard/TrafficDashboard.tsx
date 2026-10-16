@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import type { TrafficTelemetryState } from '../../hooks';
 import { WOKWI_PINS } from '../../services/telemetry/config';
 import { HEAVY_FLOW_PER_MIN, DETECTION_CM } from '../../services/telemetry/nodeRedRules';
-import type { ConnectionStatus, DataSourceKind, LightState, TrafficMode } from '../../types/traffic';
+import type { LightState, TrafficMode } from '../../types/traffic';
 import { BarChart, LedTrio, RssiBars, SegmentBar, StepChart } from './widgets';
 import './dashboard.css';
 
@@ -25,7 +25,6 @@ const MODE_HINT: Record<TrafficMode, string> = {
   FLUXO_INTENSO: 'Verde estendido pelo Node-RED',
   ATENCAO: 'Sem comunicação com o ESP32',
 };
-const PIPELINE = ['SENSOR', 'ESP32', 'MQTT', 'NODE-RED', 'DASHBOARD'];
 
 const pad2 = (n: number) => String(n).padStart(2, '0');
 const clock = (ms: number) => {
@@ -34,30 +33,15 @@ const clock = (ms: number) => {
 };
 const uptime = (s: number) => `${Math.floor(s / 3600)}h${pad2(Math.floor((s % 3600) / 60))}m`;
 
-function sourceBadge(source: DataSourceKind, status: ConnectionStatus) {
-  if (status === 'connecting') return { text: 'CONECTANDO', color: 'var(--px-cyan)', blink: true };
-  if (status === 'offline') return { text: source === 'websocket' ? 'NODE-RED OFFLINE' : 'OFFLINE', color: 'var(--px-red)', blink: true };
-  if (status === 'stale') return { text: 'SEM DADOS', color: 'var(--px-yellow)', blink: true };
-  return source === 'simulation'
-    ? { text: 'SIMULAÇÃO WOKWI', color: 'var(--px-yellow)', blink: false }
-    : { text: 'AO VIVO', color: 'var(--px-green)', blink: false };
-}
-
 /**
  * Mini dashboard somente leitura. Tudo o que aparece vem da telemetria
  * (simulada ou do Node-RED); nada aqui altera o semáforo.
  */
 export const TrafficDashboard: React.FC<{ feed: TrafficTelemetryState }> = ({ feed }) => {
   const [open, setOpen] = useState(true);
-  const { telemetry: t, status, source, history, events, remainingS, ageMs } = feed;
+  const { telemetry: t, status, history, events, remainingS, ageMs } = feed;
 
-  const badge = sourceBadge(source, status);
-  const flowing = status === 'online';
-  const deviceUp = flowing && t?.device.online !== false;
-  const hopClass = (i: number) => {
-    const up = i < 2 ? deviceUp : flowing;
-    return up ? (source === 'simulation' ? 'dash-hop sim' : 'dash-hop live') : 'dash-hop';
-  };
+  const deviceUp = status === 'online' && t?.device.online !== false;
 
   const light = t?.light.state;
   const dash = '--';
@@ -75,20 +59,6 @@ export const TrafficDashboard: React.FC<{ feed: TrafficTelemetryState }> = ({ fe
             <h1 className="px-title">SEMÁFORO<b>.IoT</b></h1>
             <p>Mobilidade urbana · FATEC Sorocaba</p>
           </div>
-        </div>
-
-        <div className="dash-pipeline" aria-label="Fluxo de dados">
-          {PIPELINE.map((hop, i) => (
-            <React.Fragment key={hop}>
-              {i > 0 && <span className="dash-hop-arrow" />}
-              <span className={hopClass(i)}>{hop}</span>
-            </React.Fragment>
-          ))}
-        </div>
-
-        <div className="dash-source" style={{ color: badge.color }}>
-          <i className={badge.blink ? 'px-blink' : undefined} />
-          {badge.text}
         </div>
 
         <button className="dash-toggle" onClick={() => setOpen(o => !o)} aria-expanded={open}>
