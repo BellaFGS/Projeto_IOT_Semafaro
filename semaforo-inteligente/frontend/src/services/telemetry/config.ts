@@ -25,6 +25,8 @@ export const WOKWI_PINS = {
 } as const;
 
 export const DEFAULT_WS_URL = 'ws://localhost:1880/ws/semaforo';
+/** API HTTP do Node-RED (histórico gravado no SQLite). */
+export const DEFAULT_HTTP_URL = 'http://localhost:1880';
 
 /** Sem mensagem por mais tempo que isso, o dashboard marca os dados como atrasados. */
 export const STALE_AFTER_MS = 5000;
@@ -32,12 +34,13 @@ export const STALE_AFTER_MS = 5000;
 export interface TelemetryConfig {
   source: DataSourceKind;
   wsUrl: string;
+  httpUrl: string;
 }
 
 /**
- * Lê a fonte de dados do `.env` (VITE_DATA_SOURCE / VITE_NODE_RED_WS_URL).
- * Na apresentação dá para trocar sem rebuild pela URL: `?fonte=ws` ou `?fonte=simulacao`
- * e `?ws=ws://host:1880/ws/semaforo`.
+ * Lê a fonte de dados do `.env` (VITE_DATA_SOURCE / VITE_NODE_RED_WS_URL / VITE_NODE_RED_HTTP_URL).
+ * Na apresentação dá para trocar sem rebuild pela URL: `?fonte=ws` ou `?fonte=simulacao`,
+ * `?ws=ws://host:1880/ws/semaforo` e `?api=http://host:1880`.
  */
 export function readTelemetryConfig(): TelemetryConfig {
   const params = new URLSearchParams(window.location.search);
@@ -48,5 +51,6 @@ export function readTelemetryConfig(): TelemetryConfig {
   return {
     source,
     wsUrl: params.get('ws') ?? import.meta.env.VITE_NODE_RED_WS_URL ?? DEFAULT_WS_URL,
+    httpUrl: (params.get('api') ?? import.meta.env.VITE_NODE_RED_HTTP_URL ?? DEFAULT_HTTP_URL).replace(/\/$/, ''),
   };
 }

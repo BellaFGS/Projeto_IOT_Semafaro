@@ -1,0 +1,669 @@
+[
+    {
+        "id": "tab_semaforo",
+        "type": "tab",
+        "label": "Semáforo Inteligente",
+        "disabled": false,
+        "info": "ESP32 (Wokwi) → MQTT (Aedes) → regras → WebSocket do dashboard + SQLite + API HTTP."
+    },
+    {
+        "id": "cfg_broker",
+        "type": "mqtt-broker",
+        "name": "Aedes local",
+        "broker": "localhost",
+        "port": "1883",
+        "clientid": "node-red-semaforo",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": "4",
+        "keepalive": "60",
+        "cleansession": true,
+        "autoUnsubscribe": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthRetain": "false",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closeRetain": "false",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willRetain": "false",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    },
+    {
+        "id": "cfg_sqlite",
+        "type": "sqlitedb",
+        "db": "${SEMAFORO_DB}",
+        "mode": "RWC"
+    },
+    {
+        "id": "cfg_ws",
+        "type": "websocket-listener",
+        "path": "/ws/semaforo",
+        "wholemsg": "false"
+    },
+    {
+        "id": "c_broker",
+        "type": "comment",
+        "z": "tab_semaforo",
+        "name": "1. Broker MQTT (Aedes) na porta 1883",
+        "info": "O ESP32 do Wokwi conecta em host.wokwi.internal:1883.",
+        "x": 170,
+        "y": 40,
+        "wires": []
+    },
+    {
+        "id": "n_aedes",
+        "type": "aedes broker",
+        "z": "tab_semaforo",
+        "name": "Broker MQTT :1883",
+        "mqtt_port": 1883,
+        "mqtt_ws_bind": "port",
+        "mqtt_ws_port": "",
+        "mqtt_ws_path": "",
+        "cert": "",
+        "key": "",
+        "certname": "",
+        "keyname": "",
+        "persistence_bind": "memory",
+        "dburl": "",
+        "usetls": false,
+        "x": 170,
+        "y": 80,
+        "wires": [
+            [
+                "n_debug_broker"
+            ],
+            []
+        ]
+    },
+    {
+        "id": "n_debug_broker",
+        "type": "debug",
+        "z": "tab_semaforo",
+        "name": "clientes do broker",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 400,
+        "y": 80,
+        "wires": []
+    },
+    {
+        "id": "c_db",
+        "type": "comment",
+        "z": "tab_semaforo",
+        "name": "2. Banco SQLite: cria tabelas e carrega o total de carros",
+        "info": "Executa database/schema.sql (idempotente) ao iniciar.",
+        "x": 230,
+        "y": 140,
+        "wires": []
+    },
+    {
+        "id": "n_start",
+        "type": "inject",
+        "z": "tab_semaforo",
+        "name": "Ao iniciar",
+        "props": [],
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": "0.5",
+        "topic": "",
+        "x": 130,
+        "y": 180,
+        "wires": [
+            [
+                "n_schema_file"
+            ]
+        ]
+    },
+    {
+        "id": "n_schema_file",
+        "type": "file in",
+        "z": "tab_semaforo",
+        "name": "Ler schema.sql",
+        "filename": "SEMAFORO_SCHEMA",
+        "filenameType": "env",
+        "format": "utf8",
+        "chunk": false,
+        "sendError": false,
+        "encoding": "utf8",
+        "allProps": false,
+        "x": 310,
+        "y": 180,
+        "wires": [
+            [
+                "n_schema_topic"
+            ]
+        ]
+    },
+    {
+        "id": "n_schema_topic",
+        "type": "change",
+        "z": "tab_semaforo",
+        "name": "SQL em msg.topic",
+        "rules": [
+            {
+                "t": "move",
+                "p": "payload",
+                "pt": "msg",
+                "to": "topic",
+                "tot": "msg"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 500,
+        "y": 180,
+        "wires": [
+            [
+                "n_schema_exec"
+            ]
+        ]
+    },
+    {
+        "id": "n_schema_exec",
+        "type": "sqlite",
+        "z": "tab_semaforo",
+        "mydb": "cfg_sqlite",
+        "sqlquery": "batch",
+        "sql": "",
+        "name": "Criar tabelas",
+        "x": 690,
+        "y": 180,
+        "wires": [
+            [
+                "n_count"
+            ]
+        ]
+    },
+    {
+        "id": "n_count",
+        "type": "sqlite",
+        "z": "tab_semaforo",
+        "mydb": "cfg_sqlite",
+        "sqlquery": "fixed",
+        "sql": "SELECT COUNT(*) AS total FROM veiculos",
+        "name": "Contar carros",
+        "x": 870,
+        "y": 180,
+        "wires": [
+            [
+                "n_total"
+            ]
+        ]
+    },
+    {
+        "id": "n_total",
+        "type": "function",
+        "z": "tab_semaforo",
+        "name": "Total no banco",
+        "func": "// Total de carros já gravados, para o contador continuar depois de reiniciar o Node-RED\nconst total = (msg.payload && msg.payload[0] && msg.payload[0].total) || 0;\nflow.set('totalBanco', total);\nnode.status({ fill: 'blue', shape: 'dot', text: total + ' carros no banco' });\nreturn null;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1050,
+        "y": 180,
+        "wires": []
+    },
+    {
+        "id": "c_rules",
+        "type": "comment",
+        "z": "tab_semaforo",
+        "name": "3. ESP32 → regras → dashboard / comando / banco",
+        "info": "",
+        "x": 210,
+        "y": 260,
+        "wires": []
+    },
+    {
+        "id": "n_mqtt_in",
+        "type": "mqtt in",
+        "z": "tab_semaforo",
+        "name": "ESP32",
+        "topic": "fatec/semaforo/01/#",
+        "qos": "0",
+        "datatype": "json",
+        "broker": "cfg_broker",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 110,
+        "y": 340,
+        "wires": [
+            [
+                "n_rules"
+            ]
+        ]
+    },
+    {
+        "id": "n_rules",
+        "type": "function",
+        "z": "tab_semaforo",
+        "name": "Regras do semáforo",
+        "func": "// Regras do semáforo\n// Entrada: mensagens MQTT do ESP32 (fatec/semaforo/01/#), payload já em JSON.\n// Saída 1 → dashboard (websocket /ws/semaforo)\n// Saída 2 → comando de volta ao ESP32 (mqtt out)\n// Saída 3 → gravações no banco SQLite (uma mensagem por INSERT)\nconst BASE = 'fatec/semaforo/01';\nconst T = {\n    ultrasonic: BASE + '/sensor/ultrassonico',\n    button: BASE + '/sensor/botao',\n    state: BASE + '/estado',\n    status: BASE + '/status',\n    greenCmd: BASE + '/cmd/tempo_verde',\n};\nconst DETECTION_CM = 50;       // abaixo disso há carro na faixa\nconst TOO_CLOSE_CM = 20;       // carro avançando sobre a faixa\nconst HEAVY_FLOW_PER_MIN = 8;  // fluxo intenso\nconst GREEN_NORMAL_S = 12;\nconst GREEN_EXTENDED_S = 16;\nconst WEAK_SIGNAL_DBM = -80;\nconst SAMPLE_MS = 5000;        // amostra para a tabela leituras\n\nconst mem = context.get('mem') || {\n    distanceCm: 400, vehicleDetected: false, sessionCount: 0, detections: [],\n    light: 'RED', remainingS: 0, durationS: 0, pedestrianRequest: false,\n    online: false, wifiRssi: -100, uptimeS: 0, greenCmdS: GREEN_NORMAL_S,\n    hasState: false, lastLight: null, alertCodes: [], lastSampleAt: 0,\n};\nconst now = Date.now();\nconst ts = new Date(now).toISOString();\nconst p = (typeof msg.payload === 'object' && msg.payload) || {};\nconst db = [];\nconst sql = (topic, values) => db.push({ topic, payload: values });\n\nswitch (msg.topic) {\n    case T.ultrasonic: {\n        mem.distanceCm = Number(p.distanceCm ?? mem.distanceCm);\n        const detected = mem.distanceCm < DETECTION_CM;\n        if (detected && !mem.vehicleDetected) {   // borda de subida = carro novo\n            mem.sessionCount += 1;\n            mem.detections.push(now);\n            sql('INSERT INTO veiculos (registrado_em, distancia_cm, estado_sinal) VALUES ($1, $2, $3)',\n                [ts, mem.distanceCm, mem.light]);\n        }\n        mem.vehicleDetected = detected;\n        break;\n    }\n    case T.button:\n        if (p.pressed && !mem.pedestrianRequest) {\n            sql('INSERT INTO pedidos_pedestre (registrado_em, estado_sinal) VALUES ($1, $2)', [ts, mem.light]);\n        }\n        if (p.pressed) mem.pedestrianRequest = true;\n        break;\n    case T.state:\n        mem.light = p.light ?? mem.light;\n        mem.remainingS = Number(p.remainingS ?? mem.remainingS);\n        mem.durationS = Number(p.durationS ?? mem.durationS);\n        mem.pedestrianRequest = Boolean(p.pedestrianRequest);\n        mem.online = true;\n        mem.hasState = true;\n        break;\n    case T.status:\n        mem.online = Boolean(p.online);\n        if (p.wifiRssi !== undefined) mem.wifiRssi = Number(p.wifiRssi);\n        if (p.uptimeS !== undefined) mem.uptimeS = Number(p.uptimeS);\n        break;\n    default:\n        return null; // ignora o próprio comando e outros tópicos\n}\n\nmem.detections = mem.detections.filter(t => now - t < 60000);\nconst vehiclesPerMin = mem.detections.length;\n\nlet mode = 'AUTOMATICO';\nif (!mem.online) mode = 'ATENCAO';\nelse if (mem.pedestrianRequest) mode = 'PEDESTRE';\nelse if (vehiclesPerMin >= HEAVY_FLOW_PER_MIN) mode = 'FLUXO_INTENSO';\n\nconst alerts = [];\nif (!mem.online) alerts.push({ level: 'critical', code: 'DISPOSITIVO_OFFLINE', message: 'ESP32 sem comunicação com o broker MQTT' });\nif (mem.distanceCm < TOO_CLOSE_CM) alerts.push({ level: 'warning', code: 'VEICULO_PROXIMO', message: 'Veículo sobre a faixa (' + mem.distanceCm.toFixed(0) + ' cm)' });\nif (mode === 'FLUXO_INTENSO') alerts.push({ level: 'warning', code: 'FLUXO_INTENSO', message: 'Fluxo intenso: verde estendido para ' + GREEN_EXTENDED_S + 's' });\nif (mem.pedestrianRequest) alerts.push({ level: 'info', code: 'PEDESTRE_AGUARDANDO', message: 'Pedestre aguardando travessia' });\nif (mem.online && mem.wifiRssi < WEAK_SIGNAL_DBM) alerts.push({ level: 'warning', code: 'SINAL_FRACO', message: 'Wi-Fi fraco no ESP32 (' + mem.wifiRssi + ' dBm)' });\n\n// Histórico: troca de cor e alertas novos\nif (mem.hasState && mem.light !== mem.lastLight) {\n    mem.lastLight = mem.light;\n    sql('INSERT INTO mudancas_sinal (registrado_em, estado, duracao_s, modo) VALUES ($1, $2, $3, $4)',\n        [ts, mem.light, mem.durationS, mode]);\n}\nconst codes = alerts.map(a => a.code);\nalerts.filter(a => !mem.alertCodes.includes(a.code)).forEach(a =>\n    sql('INSERT INTO alertas (registrado_em, nivel, codigo, mensagem) VALUES ($1, $2, $3, $4)',\n        [ts, a.level, a.code, a.message]));\nmem.alertCodes = codes;\n\nif (mem.hasState && now - mem.lastSampleAt >= SAMPLE_MS) {\n    mem.lastSampleAt = now;\n    sql('INSERT INTO leituras (registrado_em, distancia_cm, carros_por_min, wifi_rssi, online) VALUES ($1, $2, $3, $4, $5)',\n        [ts, mem.distanceCm, vehiclesPerMin, mem.wifiRssi, mem.online ? 1 : 0]);\n}\n\n// Automação: ajusta o tempo de verde do ESP32 conforme o fluxo\nlet command = null;\nconst wantedGreen = mode === 'FLUXO_INTENSO' ? GREEN_EXTENDED_S : GREEN_NORMAL_S;\nif (mem.online && wantedGreen !== mem.greenCmdS) {\n    mem.greenCmdS = wantedGreen;\n    command = { topic: T.greenCmd, payload: { durationS: wantedGreen } };\n    sql('INSERT INTO comandos (registrado_em, topico, payload) VALUES ($1, $2, $3)',\n        [ts, T.greenCmd, JSON.stringify(command.payload)]);\n}\n\ncontext.set('mem', mem);\nnode.status({\n    fill: mem.online ? 'green' : 'red', shape: 'dot',\n    text: mem.light + ' ' + mem.remainingS + 's · ' + mem.distanceCm.toFixed(0) + ' cm · ' + mode,\n});\n\nlet telemetry = null;\nif (mem.hasState) {\n    telemetry = {\n        payload: {\n            type: 'telemetry',\n            deviceId: 'esp32-semaforo-01',\n            timestamp: ts,\n            light: { state: mem.light, remainingS: mem.remainingS, durationS: mem.durationS },\n            mode,\n            sensors: {\n                ultrasonicCm: Math.round(mem.distanceCm * 10) / 10,\n                vehicleDetected: mem.vehicleDetected,\n                pedestrianRequest: mem.pedestrianRequest,\n            },\n            flow: { vehicleCount: (flow.get('totalBanco') || 0) + mem.sessionCount, vehiclesPerMin },\n            actuators: { ledRed: mem.light === 'RED', ledYellow: mem.light === 'YELLOW', ledGreen: mem.light === 'GREEN' },\n            device: { online: mem.online, wifiRssi: mem.wifiRssi, uptimeS: mem.uptimeS },\n            alerts,\n        },\n    };\n}\nreturn [telemetry, command, db.length ? db : null];",
+        "outputs": 3,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 330,
+        "y": 340,
+        "wires": [
+            [
+                "n_ws_out",
+                "n_debug_tel"
+            ],
+            [
+                "n_mqtt_out"
+            ],
+            [
+                "n_db_write"
+            ]
+        ]
+    },
+    {
+        "id": "n_ws_out",
+        "type": "websocket out",
+        "z": "tab_semaforo",
+        "name": "Dashboard /ws/semaforo",
+        "server": "cfg_ws",
+        "client": "",
+        "x": 620,
+        "y": 300,
+        "wires": []
+    },
+    {
+        "id": "n_debug_tel",
+        "type": "debug",
+        "z": "tab_semaforo",
+        "name": "telemetria",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 580,
+        "y": 260,
+        "wires": []
+    },
+    {
+        "id": "n_mqtt_out",
+        "type": "mqtt out",
+        "z": "tab_semaforo",
+        "name": "Comando ao ESP32",
+        "topic": "",
+        "qos": "0",
+        "retain": "false",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "cfg_broker",
+        "x": 600,
+        "y": 340,
+        "wires": []
+    },
+    {
+        "id": "n_db_write",
+        "type": "sqlite",
+        "z": "tab_semaforo",
+        "mydb": "cfg_sqlite",
+        "sqlquery": "msg.topic",
+        "sql": "",
+        "name": "Gravar no banco",
+        "x": 600,
+        "y": 380,
+        "wires": []
+    },
+    {
+        "id": "c_api",
+        "type": "comment",
+        "z": "tab_semaforo",
+        "name": "4. API HTTP do dashboard (http://localhost:1880/api/...)",
+        "info": "",
+        "x": 240,
+        "y": 460,
+        "wires": []
+    },
+    {
+        "id": "n_api_ev",
+        "type": "http in",
+        "z": "tab_semaforo",
+        "name": "",
+        "url": "/api/eventos",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 140,
+        "y": 500,
+        "wires": [
+            [
+                "n_api_ev_lim"
+            ]
+        ]
+    },
+    {
+        "id": "n_api_ev_lim",
+        "type": "function",
+        "z": "tab_semaforo",
+        "name": "limite (padrão 8)",
+        "func": "const n = parseInt(msg.req.query.limite, 10);\nmsg.params = { $limite: Number.isFinite(n) && n > 0 ? Math.min(n, 50) : 8 };\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 340,
+        "y": 500,
+        "wires": [
+            [
+                "n_api_ev_sql"
+            ]
+        ]
+    },
+    {
+        "id": "n_api_ev_sql",
+        "type": "sqlite",
+        "z": "tab_semaforo",
+        "mydb": "cfg_sqlite",
+        "sqlquery": "prepared",
+        "sql": "SELECT registrado_em, nivel, tipo, mensagem FROM v_eventos ORDER BY registrado_em DESC LIMIT $limite",
+        "name": "Últimos eventos",
+        "x": 550,
+        "y": 500,
+        "wires": [
+            [
+                "n_api_ev_res"
+            ]
+        ]
+    },
+    {
+        "id": "n_api_ev_res",
+        "type": "http response",
+        "z": "tab_semaforo",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "content-type": "application/json"
+        },
+        "x": 750,
+        "y": 500,
+        "wires": []
+    },
+    {
+        "id": "n_api_lei",
+        "type": "http in",
+        "z": "tab_semaforo",
+        "name": "",
+        "url": "/api/leituras",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 140,
+        "y": 560,
+        "wires": [
+            [
+                "n_api_lei_lim"
+            ]
+        ]
+    },
+    {
+        "id": "n_api_lei_lim",
+        "type": "function",
+        "z": "tab_semaforo",
+        "name": "limite (padrão 60)",
+        "func": "const n = parseInt(msg.req.query.limite, 10);\nmsg.params = { $limite: Number.isFinite(n) && n > 0 ? Math.min(n, 720) : 60 };\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 340,
+        "y": 560,
+        "wires": [
+            [
+                "n_api_lei_sql"
+            ]
+        ]
+    },
+    {
+        "id": "n_api_lei_sql",
+        "type": "sqlite",
+        "z": "tab_semaforo",
+        "mydb": "cfg_sqlite",
+        "sqlquery": "prepared",
+        "sql": "SELECT registrado_em, distancia_cm, carros_por_min, wifi_rssi, online FROM leituras ORDER BY id DESC LIMIT $limite",
+        "name": "Últimas leituras",
+        "x": 550,
+        "y": 560,
+        "wires": [
+            [
+                "n_api_lei_rev"
+            ]
+        ]
+    },
+    {
+        "id": "n_api_lei_rev",
+        "type": "function",
+        "z": "tab_semaforo",
+        "name": "mais antiga primeiro",
+        "func": "// Mais antigo primeiro, para o gráfico\nmsg.payload = (msg.payload || []).reverse();\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 750,
+        "y": 560,
+        "wires": [
+            [
+                "n_api_lei_res"
+            ]
+        ]
+    },
+    {
+        "id": "n_api_lei_res",
+        "type": "http response",
+        "z": "tab_semaforo",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "content-type": "application/json"
+        },
+        "x": 930,
+        "y": 560,
+        "wires": []
+    },
+    {
+        "id": "n_api_est",
+        "type": "http in",
+        "z": "tab_semaforo",
+        "name": "",
+        "url": "/api/estatisticas",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 150,
+        "y": 620,
+        "wires": [
+            [
+                "n_api_est_sql"
+            ]
+        ]
+    },
+    {
+        "id": "n_api_est_sql",
+        "type": "sqlite",
+        "z": "tab_semaforo",
+        "mydb": "cfg_sqlite",
+        "sqlquery": "fixed",
+        "sql": "SELECT (SELECT COUNT(*) FROM veiculos) AS total_carros, (SELECT COUNT(*) FROM veiculos WHERE date(registrado_em, 'localtime') = date('now', 'localtime')) AS carros_hoje, (SELECT COUNT(*) FROM pedidos_pedestre WHERE date(registrado_em, 'localtime') = date('now', 'localtime')) AS pedestres_hoje, (SELECT COUNT(*) FROM alertas WHERE date(registrado_em, 'localtime') = date('now', 'localtime')) AS alertas_hoje, (SELECT COUNT(*) FROM mudancas_sinal WHERE date(registrado_em, 'localtime') = date('now', 'localtime')) AS ciclos_hoje",
+        "name": "Estatísticas",
+        "x": 360,
+        "y": 620,
+        "wires": [
+            [
+                "n_api_est_first"
+            ]
+        ]
+    },
+    {
+        "id": "n_api_est_first",
+        "type": "function",
+        "z": "tab_semaforo",
+        "name": "primeira linha",
+        "func": "msg.payload = (msg.payload && msg.payload[0]) || {};\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 550,
+        "y": 620,
+        "wires": [
+            [
+                "n_api_est_res"
+            ]
+        ]
+    },
+    {
+        "id": "n_api_est_res",
+        "type": "http response",
+        "z": "tab_semaforo",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "content-type": "application/json"
+        },
+        "x": 730,
+        "y": 620,
+        "wires": []
+    },
+    {
+        "id": "n_api_hora",
+        "type": "http in",
+        "z": "tab_semaforo",
+        "name": "",
+        "url": "/api/carros-por-hora",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 160,
+        "y": 680,
+        "wires": [
+            [
+                "n_api_hora_sql"
+            ]
+        ]
+    },
+    {
+        "id": "n_api_hora_sql",
+        "type": "sqlite",
+        "z": "tab_semaforo",
+        "mydb": "cfg_sqlite",
+        "sqlquery": "fixed",
+        "sql": "SELECT hora, carros FROM v_carros_por_hora ORDER BY hora DESC LIMIT 24",
+        "name": "Carros por hora",
+        "x": 390,
+        "y": 680,
+        "wires": [
+            [
+                "n_api_hora_res"
+            ]
+        ]
+    },
+    {
+        "id": "n_api_hora_res",
+        "type": "http response",
+        "z": "tab_semaforo",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "content-type": "application/json"
+        },
+        "x": 590,
+        "y": 680,
+        "wires": []
+    },
+    {
+        "id": "n_api_catch",
+        "type": "catch",
+        "z": "tab_semaforo",
+        "name": "Erro na API",
+        "scope": [
+            "n_api_ev_sql",
+            "n_api_lei_sql",
+            "n_api_est_sql",
+            "n_api_hora_sql"
+        ],
+        "uncaught": false,
+        "x": 140,
+        "y": 740,
+        "wires": [
+            [
+                "n_api_err"
+            ]
+        ]
+    },
+    {
+        "id": "n_api_err",
+        "type": "function",
+        "z": "tab_semaforo",
+        "name": "HTTP 500",
+        "func": "msg.statusCode = 500;\nmsg.payload = { erro: msg.error && msg.error.message ? msg.error.message : 'erro no banco' };\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 320,
+        "y": 740,
+        "wires": [
+            [
+                "n_api_err_res"
+            ]
+        ]
+    },
+    {
+        "id": "n_api_err_res",
+        "type": "http response",
+        "z": "tab_semaforo",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 490,
+        "y": 740,
+        "wires": []
+    }
+]

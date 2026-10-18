@@ -22,3 +22,21 @@ yarn-error.log*
 .DS_Store
 Thumbs.db
 Desktop.ini
+
+# Banco SQLite (gerado pelo Node-RED a partir de database/schema.sql)
+semaforo-inteligente/database/*.db
+semaforo-inteligente/database/*.db-wal
+semaforo-inteligente/database/*.db-shm
+
+# Node-RED: arquivos de runtime gerados no userDir
+semaforo-inteligente/node-red/.config.*.json
+semaforo-inteligente/node-red/.flows*.json.backup
+semaforo-inteligente/node-red/.sessions.json
+semaforo-inteligente/node-red/lib/
+semaforo-inteligente/node-red/context/
+
+# Variáveis locais do front
+*.env.local
+
+# Configuração local do Claude
+.claude/

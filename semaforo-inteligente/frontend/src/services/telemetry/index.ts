@@ -5,6 +5,7 @@ import { createWebSocketSource } from './websocketSource';
 
 export * from './config';
 export * from './parseTelemetry';
+export * from './historyApi';
 export type * from './types';
 
 export function createTelemetrySource(config: TelemetryConfig): TelemetrySource {
