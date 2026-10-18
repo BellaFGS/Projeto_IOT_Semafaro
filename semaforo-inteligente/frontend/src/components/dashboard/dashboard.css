@@ -27,7 +27,6 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-right: auto;
 }
 
 .dash-logo {
@@ -90,7 +89,7 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  min-height: 128px;
+  min-height: 116px;
 }
 
 .dash-card h2 {
@@ -213,13 +212,17 @@
 .px-rssi.weak span.on { background: var(--px-yellow); }
 
 /* Alertas e eventos */
+/* Alertas ativos dentro da barra do título, ocupando o espaço livre */
 .dash-alerts {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
-  padding: 6px 10px;
+  gap: 4px 12px;
+  padding: 4px 10px;
   font-size: 15px;
+  border-left: 2px solid var(--px-line);
 }
 
 .dash-alert {
@@ -248,17 +251,22 @@
   display: flex;
   align-items: baseline;
   gap: 6px;
-  line-height: 1.15;
+  min-width: 0;
+  white-space: nowrap;
 }
 
 .dash-event time {
+  flex: none;
   font-family: var(--font-title);
   font-size: 10px;
   color: var(--px-dim);
 }
 
-.dash-event time {
-  flex: none;
+/* Uma linha por evento: o card não estica a fileira e o painel não cobre o semáforo */
+.dash-event span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 

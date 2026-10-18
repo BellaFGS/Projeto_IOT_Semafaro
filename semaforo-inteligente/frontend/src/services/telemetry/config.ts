@@ -29,7 +29,7 @@ export const DEFAULT_WS_URL = 'ws://localhost:1880/ws/semaforo';
 export const DEFAULT_HTTP_URL = 'http://localhost:1880';
 
 /** Sem mensagem por mais tempo que isso, o dashboard marca os dados como atrasados. */
-export const STALE_AFTER_MS = 5000;
+export const STALE_AFTER_MS = 8000;
 
 export interface TelemetryConfig {
   source: DataSourceKind;

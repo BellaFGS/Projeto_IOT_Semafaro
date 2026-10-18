@@ -1,10 +1,11 @@
 import React from 'react';
 import { useCharacterControl, useTrafficTelemetry } from '../../hooks';
 import { TrafficDashboard } from '../dashboard/TrafficDashboard';
-import { TrafficLight } from './TrafficLight';
-import { Car, CAR_WIDTH, SensorBeam, useCarsFromSensor } from './Car';
+import { BackgroundTrafficLight } from './BackgroundTrafficLight';
+import { Car, SensorBeam, useCarsFromSensor } from './Car';
+import { CAR, CHARACTER_HEIGHT, PED_BUTTON, SENSOR, SIDEWALK_FEET_BOTTOM } from './sceneLayout';
 
-import ruaImg from '../../assets/game/cenario/rua.png';
+import fundoImg from '../../assets/game/backgrounds/rua-melhorada.webp';
 
 import player1 from '../../assets/game/character/player1.png';
 import player2 from '../../assets/game/character/player2.png';
@@ -22,20 +23,15 @@ const playerSprites = [
   player6, player7, player8, player9, player10
 ];
 
-const GROUND_HEIGHT = '22%';
-/** Início da faixa de pedestres em rua.png (x 86 de 232), em % da largura da tela. */
-const CROSSWALK_LEFT = '37.07%';
-/** Faixa da pista onde os carros andam (bottom) e teto do carro parado. */
-const LANE_BOTTOM = '5%';
-const CAR_TOP = `calc(${LANE_BOTTOM} + 50px)`;
-/** HC-SR04 no poste do pórtico; o carro para com a frente logo antes da faixa. */
-const SENSOR_LEFT = `calc(${CROSSWALK_LEFT} - 30px)`;
-const CAR_STOP_LEFT = `calc(${CROSSWALK_LEFT} - ${CAR_WIDTH + 10}px)`;
-
 /**
- * Cenário 2D. O semáforo, o botão de pedestre, o HC-SR04 e os carros só refletem
- * a telemetria recebida (Wokwi via Node-RED, ou a simulação); o personagem é o
- * único elemento controlado pelo usuário.
+ * Cenário 2D sobre a ilustração `rua-melhorada.webp`.
+ *
+ * A imagem fica num "palco" 3:2 que cobre a tela, alinhado por baixo para a
+ * calçada e a rua principal aparecerem sempre (corta o céu se precisar). Tudo o
+ * que fica por cima é posicionado em % da imagem (ver sceneLayout.ts):
+ * o semáforo da esquina acende conforme a telemetria, o botão de pedestre do
+ * poste pisca no pedido de travessia, o HC-SR04 e os carros refletem o sensor.
+ * O personagem é o único elemento controlado pelo usuário.
  */
 export const GameScene: React.FC = () => {
   const { position, currentFrame, facing } = useCharacterControl();
@@ -51,116 +47,89 @@ export const GameScene: React.FC = () => {
       height: '100vh',
       position: 'relative',
       overflow: 'hidden',
-      background: 'var(--px-sky)',
+      background: '#4a8fd1',
     }}>
-      <TrafficDashboard feed={feed} />
-
-      <SensorBeam left={SENSOR_LEFT} ground={GROUND_HEIGHT} carTop={CAR_TOP} detected={vehicleDetected} />
-
-      {cars.map(car => (
-        <Car key={car.id} car={car} stopLeft={CAR_STOP_LEFT} bottom={LANE_BOTTOM} onArrivedOrGone={onArrivedOrGone} />
-      ))}
-
-      {/* Pórtico: poste plantado na calçada, à esquerda da faixa; o semáforo fica sobre a faixa */}
+      {/* Palco: a imagem de fundo e tudo que se alinha a ela */}
       <div style={{
         position: 'absolute',
-        left: `calc(${CROSSWALK_LEFT} - 40px)`,
-        bottom: GROUND_HEIGHT,
-        zIndex: 4,
-        width: 'min(32vw, 380px)',
-        pointerEvents: 'none',
+        left: '50%',
+        bottom: 0,
+        width: 'max(100vw, 150vh)',
+        aspectRatio: '3 / 2',
+        transform: 'translateX(-50%)',
+        backgroundImage: `url(${fundoImg})`,
+        backgroundSize: '100% 100%',
+        imageRendering: 'pixelated',
       }}>
-        <TrafficLight state={t?.light.state ?? null} remainingTime={feed.remainingS} />
-      </div>
+        <BackgroundTrafficLight state={t?.light.state ?? null} remainingS={feed.remainingS} />
 
-      {/* Botão de pedestre na calçada (indicador do botão físico do ESP32) */}
-      <div
-        title={pedestrianWaiting ? 'Pedestre aguardando travessia' : 'Botão de pedestre'}
-        style={{
-          position: 'absolute',
-          left: `calc(${CROSSWALK_LEFT} - 110px)`,
-          bottom: GROUND_HEIGHT,
-          zIndex: 4,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-        }}
-      >
-        <div style={{
-          width: '20px',
-          height: '24px',
-          backgroundColor: pedestrianWaiting ? 'var(--px-yellow)' : '#e2e8f0',
-          border: '3px solid var(--px-ink)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}>
-          <div
-            className={pedestrianWaiting ? 'px-blink' : undefined}
+        {/* Botão de pedestre do poste: pisca quando há pedido de travessia */}
+        <div
+          title={pedestrianWaiting ? 'Pedestre aguardando travessia' : 'Botão de pedestre'}
+          className={pedestrianWaiting ? 'px-blink' : undefined}
+          style={{
+            position: 'absolute',
+            left: PED_BUTTON.left,
+            top: PED_BUTTON.top,
+            width: PED_BUTTON.width,
+            height: PED_BUTTON.height,
+            zIndex: 2,
+            outline: pedestrianWaiting ? '3px solid var(--px-yellow)' : 'none',
+            background: pedestrianWaiting ? 'rgba(255, 194, 61, 0.55)' : 'transparent',
+            boxShadow: pedestrianWaiting ? '0 0 14px 4px rgba(255, 194, 61, 0.7)' : 'none',
+          }}
+        />
+
+        <SensorBeam left={SENSOR.left} top={SENSOR.top} carTop={CAR.top} detected={vehicleDetected} />
+
+        {cars.map(car => (
+          <Car
+            key={car.id}
+            car={car}
+            width={CAR.width}
+            stopLeft={CAR.stopLeft}
+            bottom={CAR.bottom}
+            onArrivedOrGone={onArrivedOrGone}
+          />
+        ))}
+
+        {/* Personagem andando na calçada da frente */}
+        <div
+          style={{
+            position: 'absolute',
+            left: `${position.x}px`,
+            bottom: SIDEWALK_FEET_BOTTOM,
+            height: `${CHARACTER_HEIGHT * 100}%`,
+            aspectRatio: '1 / 1',
+            zIndex: 5,
+            transform: facing === 'left' ? 'scaleX(-1)' : 'scaleX(1)',
+            transformOrigin: 'bottom center',
+            transition: 'transform 0.1s ease',
+            pointerEvents: 'none',
+          }}
+        >
+          <img
+            src={playerSprites[currentFrame - 1]}
+            alt={`Player Frame ${currentFrame}`}
+            className="pixel-art"
             style={{
-              width: '8px',
-              height: '8px',
-              backgroundColor: pedestrianWaiting ? '#fff' : 'var(--px-red)',
+              width: '100%',
+              height: '100%',
+              objectFit: 'contain',
+              objectPosition: 'bottom',
+              display: 'block',
+              filter: 'drop-shadow(0 6px 4px rgba(0,0,0,0.35))',
             }}
           />
         </div>
-        <div style={{ width: '4px', height: '35px', backgroundColor: '#475569' }} />
       </div>
 
-      {/* Personagem sobre a linha do chão, como no protótipo */}
-      <div
-        style={{
-          position: 'absolute',
-          left: `${position.x}px`,
-          bottom: GROUND_HEIGHT,
-          zIndex: 5,
-          transform: facing === 'left' ? 'scaleX(-1)' : 'scaleX(1)',
-          transformOrigin: 'bottom center',
-          transition: 'transform 0.1s ease',
-          pointerEvents: 'none',
-        }}
-      >
-        <img
-          src={playerSprites[currentFrame - 1]}
-          alt={`Player Frame ${currentFrame}`}
-          className="pixel-art"
-          style={{
-            width: '200px',
-            height: '200px',
-            objectFit: 'contain',
-            filter: 'drop-shadow(0 6px 6px rgba(0,0,0,0.35))',
-          }}
-        />
-      </div>
-
-      {/* Asfalto preto + faixa de pedestres */}
-      <div style={{
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        width: '100%',
-        height: GROUND_HEIGHT,
-        backgroundColor: '#000000',
-        zIndex: 1,
-        overflow: 'hidden',
-      }}>
-        <img
-          src={ruaImg}
-          alt="Rua e Faixa de Pedestre"
-          className="pixel-art"
-          style={{
-            width: '100%',
-            height: '100%',
-            objectFit: 'fill',
-            display: 'block',
-          }}
-        />
-      </div>
+      <TrafficDashboard feed={feed} />
 
       <div className="px-panel" style={{
         position: 'absolute',
-        bottom: `calc(${GROUND_HEIGHT} + 12px)`,
-        right: '16px',
+        bottom: '12px',
+        right: '12px',
         padding: '6px 14px',
         fontSize: '15px',
         color: 'var(--px-muted)',

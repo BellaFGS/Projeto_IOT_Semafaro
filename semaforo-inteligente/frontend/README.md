@@ -2,7 +2,7 @@
 
 Front-end do projeto **Semáforo Inteligente** (FATEC Sorocaba · Mobilidade urbana).
 É um mini dashboard em pixel art, **somente leitura**, sobre um cenário 2D com rua, faixa de pedestres,
-pórtico com semáforo, sensor HC-SR04, carros e um personagem. Tudo o que aparece na tela vem do fluxo de dados do projeto:
+semáforo, sensor HC-SR04, carros e um personagem. Tudo o que aparece na tela vem do fluxo de dados do projeto:
 
 ```
 HC-SR04 + botão ──► ESP32 (Wokwi/PlatformIO) ──► MQTT (Aedes) ──► Node-RED ──► WebSocket + API ──► Dashboard
@@ -43,18 +43,26 @@ O painel cobre os elementos pedidos na Etapa 7 do roteiro:
 | Histórico | Card **HISTÓRICO**: ao abrir, carrega os últimos eventos do banco (API do Node-RED) e depois segue ao vivo |
 | Controle dos atuadores | Automático: o Node-RED muda o tempo de verde do ESP32 conforme o fluxo. O dashboard não tem botões |
 
-Se os dados param de chegar (Node-RED fora do ar ou mais de 5 s sem mensagem), o card **CIRCUITO WOKWI** passa para
+Se os dados param de chegar (Node-RED fora do ar ou mais de 8 s sem mensagem), o card **CIRCUITO WOKWI** passa para
 `OFF`. Antes da primeira mensagem, os valores aparecem como `--`.
 
 No cenário:
 
-- o semáforo do pórtico acende a lâmpada recebida na telemetria e o visor mostra o tempo restante;
-- o botão de pedestre na calçada pisca quando há pedido de travessia;
-- o **HC-SR04** fica preso no poste, com um feixe até a pista que acende quando detecta um carro;
+- o fundo é a ilustração `src/assets/game/backgrounds/rua-melhorada.webp` (3072×2048): rua principal na horizontal,
+  rua lateral indo para o fundo, faixa de pedestres e o semáforo na esquina. Ela cobre a tela em proporção 3:2,
+  alinhada por baixo (em telas largas o céu é cortado, nunca a calçada nem a rua);
+- o **semáforo desenhado na imagem** acende conforme a telemetria: a lâmpada acesa recebe o LED em PNG com brilho
+  (`traffic-light/on/`) e as outras recebem a imagem da luz apagada (`traffic-light/off/`). Ao lado dele, um visor mostra os segundos restantes. Sem dados, as três ficam apagadas;
+- a **caixa do botão de pedestre** desenhada no poste pisca em amarelo quando há pedido de travessia;
+- o **HC-SR04** fica preso no mesmo poste, com um feixe até a rua principal que acende quando detecta um carro;
 - **carros**: o Wokwi não tem um "carro", então o carro do cenário é a leitura do HC-SR04. Quando a distância cai
-  abaixo de 50 cm, um carro entra pela esquerda e para antes da faixa, embaixo do sensor. Quando a distância volta a
-  subir, ele segue viagem atravessando a faixa. Cada carro que aparece é um carro contado pelo Node-RED
-  (implementação em [`Car.tsx`](src/components/game/Car.tsx)).
+  abaixo de 50 cm, um carro entra pela esquerda na rua principal e para antes do cruzamento, embaixo do sensor.
+  Quando a distância volta a subir, ele segue viagem. Cada carro que aparece é um carro contado pelo Node-RED
+  (implementação em [`Car.tsx`](src/components/game/Car.tsx));
+- o **personagem** anda na calçada da frente.
+
+As posições de tudo que fica sobre a imagem (lâmpadas, botão, sensor, calçada, rua) foram medidas em pixels da
+ilustração e estão em [`sceneLayout.ts`](src/components/game/sceneLayout.ts). Se trocar a imagem, ajuste ali.
 
 O único controle do usuário é mover o personagem (`←` `→` ou `A` / `D`). O botão **OCULTAR/PAINEL** só esconde o painel.
 
@@ -162,7 +170,7 @@ no WebSocket, sempre com todos os campos:
 |---|---|---|
 | `type` | `"telemetry"` | Obrigatório. Outras mensagens são ignoradas |
 | `light.state` | `RED` \| `YELLOW` \| `GREEN` | Obrigatório. Lâmpada acesa |
-| `light.remainingS` / `durationS` | número (s) | Tempo restante e duração total do estado. O front faz a contagem entre mensagens |
+| `light.remainingS` / `durationS` | número (s) | Tempo restante e duração total do estado. O front mostra o valor recebido, sem adiantar (o Wokwi pode rodar abaixo do tempo real) |
 | `mode` | `AUTOMATICO` \| `PEDESTRE` \| `FLUXO_INTENSO` \| `ATENCAO` | Modo decidido pelas regras |
 | `sensors.ultrasonicCm` | número (cm) | Leitura do HC-SR04 |
 | `sensors.vehicleDetected` | booleano | Distância < 50 cm |
@@ -203,12 +211,12 @@ Se uma regra mudar, mude nos dois lugares.
 
 | # | Teste | Como provocar | Resultado esperado no dashboard |
 |---|---|---|---|
-| 1 | Fluxo completo | Wokwi rodando, Node-RED ativo, abrir `http://localhost:5173` | Circuito `ON`, sinal do pórtico igual aos LEDs do Wokwi |
+| 1 | Fluxo completo | Wokwi rodando, Node-RED ativo, abrir `http://localhost:5173` | Circuito `ON`, semáforo da imagem igual aos LEDs do Wokwi |
 | 2 | Contagem | Arrastar o HC-SR04 abaixo de 50 cm e voltar | Total de carros +1, um carro para na faixa embaixo do sensor e segue viagem quando a distância volta a subir |
 | 3 | Fluxo intenso | Passar 8 carros em menos de 1 min | Modo `FLUXO INTENSO`, alerta, verde seguinte com 16 s |
 | 4 | Pedestre | Apertar o botão no verde | Contagem cai para 3 s, botão da calçada pisca, vermelho com 10 s |
 | 5 | Carro na faixa | Distância < 20 cm | Alerta "Veículo sobre a faixa" |
-| 6 | ESP32 cai | Parar a simulação do Wokwi | Após 5 s sem mensagem: circuito `OFF`. Após ~25 s (Last Will do broker): alerta crítico e modo `ATENÇÃO` |
+| 6 | ESP32 cai | Parar a simulação do Wokwi | Após 8 s sem mensagem: circuito `OFF`. Após ~25 s (Last Will do broker): alerta crítico e modo `ATENÇÃO` |
 | 7 | Node-RED cai | Parar o Node-RED | Circuito `OFF`; ao religar, os dados voltam sozinhos |
 
 ---
@@ -243,8 +251,12 @@ frontend/
 │   │   └── game/
 │   │       ├── GameScene.tsx         ← cenário 2D ligado à telemetria
 │   │       ├── Car.tsx               ← carros e HC-SR04 sincronizados com o sensor
-│   │       └── TrafficLight.tsx      ← pórtico com LEDs em PNG sobre as lâmpadas
-│   └── assets/game/                  ← sprites (personagem, rua, semáforo, LEDs)
+│   │       ├── BackgroundTrafficLight.tsx ← acende as lâmpadas do semáforo da imagem
+│   │       └── sceneLayout.ts        ← posições medidas na imagem de fundo
+│   └── assets/game/                  ← imagens (ver assets/game/README.md)
+│       ├── backgrounds/              ← fundo pixel art (rua-melhorada.webp)
+│       ├── traffic-light/on|off/     ← luzes acesas e apagadas
+│       └── character/                ← quadros do personagem
 └── README.md
 ```
 
@@ -257,7 +269,7 @@ frontend/
   Nada de cantos arredondados nem desfoque.
 - **Cores:** vermelho `#ff4d5e`, amarelo `#ffc23d` e verde `#3ee87a` são as cores do sinal e também de erro, atenção e ok.
   Ciano `#55d6ff` é para dados de sensor e violeta `#b48cff` para o modo pedestre. Texto creme `#f6f0d8` e apoio `#9ea6d6`.
-- **Sprites:** sempre com `image-rendering: pixelated` (classe `.pixel-art`). Os LEDs acesos são os PNGs `red/yellow/green.png`
-  sobre as lâmpadas apagadas do `semaforo.png`.
+- **Sprites:** sempre com `image-rendering: pixelated` (classe `.pixel-art`). Sobre cada lâmpada do semáforo desenhado no fundo vai
+  a luz acesa (`traffic-light/on/`) ou apagada (`traffic-light/off/`). Artes originais em `docs/arte/`.
 
 Os tokens ficam em [`src/index.css`](src/index.css). Para mudar a identidade, edite as variáveis `--px-*`.

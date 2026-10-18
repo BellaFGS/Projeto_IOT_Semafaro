@@ -38,7 +38,7 @@ export interface TrafficTelemetryState {
   receivedAt: number | null;
   /** Tempo desde a última mensagem recebida. */
   ageMs: number | null;
-  /** Contagem regressiva do sinal, corrigida pelo tempo desde a última mensagem. */
+  /** Segundos restantes do sinal, como publicados pelo ESP32. */
   remainingS: number | null;
   history: HistoryPoint[];
   events: TrafficEvent[];
@@ -127,13 +127,13 @@ export function useTrafficTelemetry(): TrafficTelemetryState {
     return () => window.clearInterval(timer);
   }, []);
 
-  // `now` só anda a cada 250 ms, então pode ficar atrás de `receivedAt`; sem o
-  // Math.max o floor de um valor negativo dá -1 e o contador pula um segundo para cima.
+  // `now` só anda a cada 250 ms, então pode ficar atrás de `receivedAt`.
   const ageMs = receivedAt === null ? null : Math.max(0, now - receivedAt);
   const isStale = status === 'online' && ageMs !== null && ageMs > STALE_AFTER_MS;
-  const remainingS = telemetry && ageMs !== null
-    ? Math.max(0, telemetry.light.remainingS - Math.floor(ageMs / 1000))
-    : null;
+  // O contador mostra exatamente o que o ESP32 publicou. Sem adiantar localmente:
+  // no Wokwi a simulação pode rodar abaixo do tempo real (ex.: 25%), e uma
+  // contagem pelo relógio do navegador desceria rápido demais e pularia de volta.
+  const remainingS = telemetry ? telemetry.light.remainingS : null;
 
   return {
     source: config.source,
