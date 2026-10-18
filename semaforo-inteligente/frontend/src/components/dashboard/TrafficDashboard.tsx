@@ -61,6 +61,20 @@ export const TrafficDashboard: React.FC<{ feed: TrafficTelemetryState }> = ({ fe
           </div>
         </div>
 
+        {/* Alertas ativos, calculados pelas regras do Node-RED */}
+        <div className="dash-alerts" aria-live="polite">
+          <span className="px-title" style={{ fontSize: 11, color: 'var(--px-muted)' }}>ALERTAS</span>
+          {!t || t.alerts.length === 0 ? (
+            <span className="dash-alert"><i className="bg-GREEN" /> {t ? 'Operação normal' : 'Sem dados ainda'}</span>
+          ) : (
+            t.alerts.map(a => (
+              <span key={a.code} className="dash-alert">
+                <i className={`bg-${a.level}`} /> {a.message}
+              </span>
+            ))
+          )}
+        </div>
+
         <button className="dash-toggle" onClick={() => setOpen(o => !o)} aria-expanded={open}>
           {open ? 'OCULTAR' : 'PAINEL'}
         </button>
@@ -168,20 +182,6 @@ export const TrafficDashboard: React.FC<{ feed: TrafficTelemetryState }> = ({ fe
                 ))}
               </ul>
             </article>
-          </section>
-
-          {/* Alertas ativos, calculados pelas regras do Node-RED */}
-          <section className="px-panel dash-alerts" aria-live="polite">
-            <span className="px-title" style={{ fontSize: 11, color: 'var(--px-muted)' }}>ALERTAS</span>
-            {!t || t.alerts.length === 0 ? (
-              <span className="dash-alert"><i className="bg-GREEN" /> {t ? 'Operação normal' : 'Sem dados ainda'}</span>
-            ) : (
-              t.alerts.map(a => (
-                <span key={a.code} className="dash-alert">
-                  <i className={`bg-${a.level}`} /> {a.message}
-                </span>
-              ))
-            )}
           </section>
         </>
       )}

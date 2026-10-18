@@ -19,9 +19,6 @@ export interface CarState {
 
 const CAR_COLORS = ['#ff4d5e', '#55d6ff', '#ffc23d', '#b48cff', '#3ee87a', '#f6f0d8'];
 
-export const CAR_WIDTH = 128;
-const CAR_HEIGHT = 56;
-
 export function useCarsFromSensor(vehicleDetected: boolean) {
   const [cars, setCars] = useState<CarState[]>([]);
   const wasDetected = useRef(false);
@@ -63,9 +60,9 @@ export function useCarsFromSensor(vehicleDetected: boolean) {
   return { cars, onArrivedOrGone };
 }
 
-/** Carro em pixel art (grade 32×14 ampliada 4×), farol à direita. */
+/** Carro em pixel art (grade 32×14), farol à direita; ocupa a largura do contêiner. */
 const CarSprite: React.FC<{ color: string }> = ({ color }) => (
-  <svg width={CAR_WIDTH} height={CAR_HEIGHT} viewBox="0 0 32 14" shapeRendering="crispEdges" aria-hidden>
+  <svg width="100%" viewBox="0 0 32 14" shapeRendering="crispEdges" style={{ display: 'block' }} aria-hidden>
     {/* cabine */}
     <rect x="9" y="1" width="14" height="5" fill={color} />
     <rect x="10" y="2" width="5" height="4" fill="#bfefff" />
@@ -96,14 +93,16 @@ const TRANSITION: Record<Phase, string> = {
 
 export const Car: React.FC<{
   car: CarState;
-  /** `left` (CSS) onde o carro para, com a frente antes da faixa. */
+  /** Largura do carro (CSS, em % do cenário). */
+  width: string;
+  /** `left` (CSS) onde o carro para, com a frente antes do cruzamento. */
   stopLeft: string;
   bottom: string;
   onArrivedOrGone: (id: number) => void;
-}> = ({ car, stopLeft, bottom, onArrivedOrGone }) => {
+}> = ({ car, width, stopLeft, bottom, onArrivedOrGone }) => {
   const left =
-    car.phase === 'spawn' ? `-${CAR_WIDTH + 40}px`
-      : car.phase === 'leaving' ? 'calc(100% + 40px)'
+    car.phase === 'spawn' ? `calc(-1 * ${width} - 2%)`
+      : car.phase === 'leaving' ? '104%'
         : stopLeft;
   const moving = car.phase === 'arriving' || car.phase === 'leaving';
 
@@ -116,6 +115,7 @@ export const Car: React.FC<{
         position: 'absolute',
         left,
         bottom,
+        width,
         zIndex: 3,
         transition: TRANSITION[car.phase],
         pointerEvents: 'none',
@@ -130,24 +130,25 @@ export const Car: React.FC<{
 };
 
 /**
- * HC-SR04 preso no poste do pórtico, com o feixe até a pista.
+ * HC-SR04 preso no poste do semáforo, com o feixe até a pista.
  * O feixe acende quando o sensor detecta um carro.
+ * Posições medidas do topo do cenário (em %).
  */
 export const SensorBeam: React.FC<{
   left: string;
-  /** Altura da linha do chão (bottom da calçada). */
-  ground: string;
-  /** Altura do teto do carro parado (bottom), onde o feixe termina. */
+  /** Topo da caixa do sensor. */
+  top: string;
+  /** Teto do carro parado, onde o feixe termina. */
   carTop: string;
   detected: boolean;
-}> = ({ left, ground, carTop, detected }) => (
+}> = ({ left, top, carTop, detected }) => (
   <>
     <div
       title="HC-SR04 — sensor ultrassônico que conta os carros"
       style={{
         position: 'absolute',
         left,
-        bottom: `calc(${ground} + 26px)`,
+        top,
         zIndex: 6,
         display: 'flex',
         flexDirection: 'column',
@@ -191,8 +192,8 @@ export const SensorBeam: React.FC<{
       style={{
         position: 'absolute',
         left,
-        bottom: carTop,
-        height: `calc(${ground} + 26px - ${carTop})`,
+        top: `calc(${top} + 40px)`,
+        height: `calc(${carTop} - ${top} - 40px)`,
         width: 4,
         transform: 'translateX(-50%)',
         zIndex: 2,
