@@ -286,3 +286,50 @@
   color: var(--px-dim);
   margin-left: 4px;
 }
+
+/* Barra de passagens por cor do sinal */
+.px-split {
+  display: flex;
+  gap: 2px;
+  height: 12px;
+  background: var(--px-ink);
+  padding: 2px;
+}
+
+.px-split span {
+  min-width: 4px;
+}
+
+.px-split-empty {
+  flex: 1;
+  background: var(--px-panel-2);
+}
+
+/* Lista de passagens */
+.dash-pass {
+  display: grid;
+  grid-template-columns: auto auto auto 1fr;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  font-size: 14px;
+}
+
+.dash-pass time {
+  font-family: var(--font-title);
+  font-size: 10px;
+  color: var(--px-dim);
+}
+
+.dash-pass .dash-tag {
+  font-size: 9px;
+  padding: 2px 4px;
+}
+
+.dash-pass b {
+  justify-self: end;
+  font-family: var(--font-title);
+  font-size: 10px;
+  font-weight: normal;
+  color: var(--px-red);
+}

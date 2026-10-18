@@ -1,15 +1,16 @@
-import { parseTelemetry } from './parseTelemetry';
+import { parsePassageEvent, parseTelemetry } from './parseTelemetry';
 import type { TelemetrySource } from './types';
 
 const MIN_RETRY_MS = 1000;
 const MAX_RETRY_MS = 10000;
 
 /**
- * Conecta no nó "websocket out" do Node-RED e repassa cada mensagem válida.
- * Reconecta sozinho com espera crescente (1s → 10s) se o Node-RED cair.
+ * Conecta no WebSocket do Node-RED (/ws/semaforo), repassa cada telemetria válida
+ * e envia os comandos do minigame. Reconecta sozinho com espera crescente
+ * (1s → 10s) se o Node-RED cair.
  */
 export function createWebSocketSource(url: string): TelemetrySource {
-  return ({ onTelemetry, onStatus }) => {
+  return ({ onTelemetry, onPassage, onStatus }) => {
     let socket: WebSocket | null = null;
     let retryMs = MIN_RETRY_MS;
     let retryTimer: number | undefined;
@@ -30,8 +31,10 @@ export function createWebSocketSource(url: string): TelemetrySource {
       };
       socket.onmessage = event => {
         const telemetry = parseTelemetry(event.data);
-        if (telemetry) onTelemetry(telemetry);
-        else console.warn('[telemetria] mensagem ignorada, fora do contrato:', event.data);
+        if (telemetry) return onTelemetry(telemetry);
+        const passage = parsePassageEvent(event.data);
+        if (passage) return onPassage(passage);
+        console.warn('[telemetria] mensagem ignorada, fora do contrato:', event.data);
       };
       socket.onclose = () => {
         if (!stopped) scheduleRetry();
@@ -47,10 +50,16 @@ export function createWebSocketSource(url: string): TelemetrySource {
 
     connect();
 
-    return () => {
-      stopped = true;
-      window.clearTimeout(retryTimer);
-      socket?.close();
+    return {
+      stop: () => {
+        stopped = true;
+        window.clearTimeout(retryTimer);
+        socket?.close();
+      },
+      // Comandos vão pelo mesmo WebSocket; o nó "websocket in" do Node-RED repassa ao ESP32.
+      send: command => {
+        if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify(command));
+      },
     };
   };
 }

@@ -1,122 +1,103 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   createTelemetrySource,
-  fetchStoredEvents,
-  fetchStoredReadings,
+  fetchStoredPassages,
   readTelemetryConfig,
   STALE_AFTER_MS,
+  type DeviceCommand,
+  type TelemetryConnection,
 } from '../services/telemetry';
 import type {
-  AlertLevel,
   ConnectionStatus,
   DataSourceKind,
+  Passage,
+  PassageEvent,
+  PassageStats,
   TrafficTelemetry,
 } from '../types/traffic';
 
-const HISTORY_SIZE = 60;
-const HISTORY_SAMPLE_MS = 1000;
-const EVENTS_SIZE = 8;
-
-export interface HistoryPoint {
-  at: number;
-  distanceCm: number;
-  vehiclesPerMin: number;
-}
-
-export interface TrafficEvent {
-  id: number;
-  at: number;
-  level: AlertLevel;
-  message: string;
-}
+const RECENT_PASSAGES = 8;
+const EMPTY_STATS: PassageStats = { total: 0, green: 0, yellow: 0, red: 0, perMin: 0 };
 
 export interface TrafficTelemetryState {
   source: DataSourceKind;
   wsUrl: string;
   status: ConnectionStatus;
+  /** Sistema 1: estado do semáforo vindo do ESP32. */
   telemetry: TrafficTelemetry | null;
   receivedAt: number | null;
-  /** Tempo desde a última mensagem recebida. */
+  /** Tempo desde a última mensagem do semáforo. */
   ageMs: number | null;
   /** Segundos restantes do sinal, como publicados pelo ESP32. */
   remainingS: number | null;
-  history: HistoryPoint[];
-  events: TrafficEvent[];
+  /** Sistema 2: totais do banco de passagens. */
+  stats: PassageStats;
+  /** Últimas passagens gravadas, mais recente primeiro. */
+  passages: Passage[];
+  /** Última passagem confirmada pelo Node-RED (muda a cada carro gravado). */
+  lastPassageEvent: PassageEvent | null;
+  /** Envia um comando ao Node-RED (clique no botão de pedestre, passagem de carro). */
+  sendCommand: (command: DeviceCommand) => void;
 }
 
-const LIGHT_NAMES = { RED: 'vermelho', YELLOW: 'amarelo', GREEN: 'verde' } as const;
+const addPassage = (list: Passage[], p: Passage) =>
+  [p, ...list.filter(x => x.id !== p.id)].slice(0, RECENT_PASSAGES);
 
-/** Assina a fonte de telemetria configurada e mantém o estado do dashboard. */
+/** Assina a fonte de dados configurada e mantém o estado do dashboard. */
 export function useTrafficTelemetry(): TrafficTelemetryState {
   const config = useMemo(readTelemetryConfig, []);
   const [status, setStatus] = useState<ConnectionStatus>('connecting');
   const [telemetry, setTelemetry] = useState<TrafficTelemetry | null>(null);
   const [receivedAt, setReceivedAt] = useState<number | null>(null);
-  const [history, setHistory] = useState<HistoryPoint[]>([]);
-  const [events, setEvents] = useState<TrafficEvent[]>([]);
+  const [stats, setStats] = useState<PassageStats>(EMPTY_STATS);
+  const [passages, setPassages] = useState<Passage[]>([]);
+  const [lastPassageEvent, setLastPassageEvent] = useState<PassageEvent | null>(null);
   const [now, setNow] = useState(() => Date.now());
 
-  const previousRef = useRef<TrafficTelemetry | null>(null);
-  const lastSampleRef = useRef(0);
-  const eventIdRef = useRef(0);
+  const connectionRef = useRef<TelemetryConnection | null>(null);
+  const sendCommand = useCallback((command: DeviceCommand) => connectionRef.current?.send(command), []);
 
   useEffect(() => {
-    const stop = createTelemetrySource(config)({
+    const connection = createTelemetrySource(config)({
       onStatus: setStatus,
       onTelemetry: next => {
-        const at = Date.now();
-        const prev = previousRef.current;
-        previousRef.current = next;
         setTelemetry(next);
-        setReceivedAt(at);
-
-        if (at - lastSampleRef.current >= HISTORY_SAMPLE_MS) {
-          lastSampleRef.current = at;
-          setHistory(h => [
-            ...h.slice(-(HISTORY_SIZE - 1)),
-            { at, distanceCm: next.sensors.ultrasonicCm, vehiclesPerMin: next.flow.vehiclesPerMin },
-          ]);
-        }
-
-        const fresh: Omit<TrafficEvent, 'id'>[] = [];
-        if (prev && prev.light.state !== next.light.state) {
-          fresh.push({ at, level: 'info', message: `Sinal ${LIGHT_NAMES[next.light.state]} (${next.light.durationS}s)` });
-        }
-        if (prev && next.flow.vehicleCount > prev.flow.vehicleCount) {
-          fresh.push({ at, level: 'info', message: `Carro contado (${next.sensors.ultrasonicCm.toFixed(0)} cm)` });
-        }
-        const prevCodes = new Set(prev?.alerts.map(a => a.code));
-        next.alerts
-          .filter(a => !prevCodes.has(a.code))
-          .forEach(a => fresh.push({ at, level: a.level, message: a.message }));
-
-        if (fresh.length) {
-          setEvents(list => [
-            ...fresh.map(e => ({ ...e, id: ++eventIdRef.current })).reverse(),
-            ...list,
-          ].slice(0, EVENTS_SIZE));
+        setReceivedAt(Date.now());
+        // A telemetria também traz os totais do banco (útil ao abrir a página).
+        setStats(next.passages);
+        if (next.lastPassage) {
+          const last = next.lastPassage;
+          setPassages(list => (list.some(p => p.id === last.id) ? list : addPassage(list, last)));
         }
       },
+      onPassage: event => {
+        setStats(event.stats);
+        setPassages(list => addPassage(list, event.passage));
+        setLastPassageEvent(event);
+      },
     });
-    return stop;
+    connectionRef.current = connection;
+    return () => {
+      connectionRef.current = null;
+      connection.stop();
+    };
   }, [config]);
 
-  // Com dados reais, abre já com o histórico gravado no banco pelo Node-RED.
+  // Com dados reais, abre já com as últimas passagens gravadas no banco.
   useEffect(() => {
     if (config.source !== 'websocket') return;
     let cancelled = false;
-    Promise.all([
-      fetchStoredEvents(config.httpUrl, EVENTS_SIZE),
-      fetchStoredReadings(config.httpUrl, HISTORY_SIZE),
-    ])
-      .then(([stored, readings]) => {
+    fetchStoredPassages(config.httpUrl, RECENT_PASSAGES)
+      .then(stored => {
         if (cancelled) return;
-        // ids negativos para não colidir com os eventos ao vivo
-        const seeded = stored.map((e, i) => ({ ...e, id: -(i + 1) }));
-        setEvents(list => [...list, ...seeded].slice(0, EVENTS_SIZE));
-        setHistory(h => [...readings, ...h].slice(-HISTORY_SIZE));
+        setPassages(list => {
+          const ids = new Set(list.map(p => p.id));
+          return [...list, ...stored.filter(p => !ids.has(p.id))]
+            .sort((a, b) => b.id - a.id)
+            .slice(0, RECENT_PASSAGES);
+        });
       })
-      .catch(err => console.warn('[histórico] API do Node-RED indisponível:', err.message));
+      .catch(err => console.warn('[passagens] API do Node-RED indisponível:', err.message));
     return () => {
       cancelled = true;
     };
@@ -131,8 +112,7 @@ export function useTrafficTelemetry(): TrafficTelemetryState {
   const ageMs = receivedAt === null ? null : Math.max(0, now - receivedAt);
   const isStale = status === 'online' && ageMs !== null && ageMs > STALE_AFTER_MS;
   // O contador mostra exatamente o que o ESP32 publicou. Sem adiantar localmente:
-  // no Wokwi a simulação pode rodar abaixo do tempo real (ex.: 25%), e uma
-  // contagem pelo relógio do navegador desceria rápido demais e pularia de volta.
+  // no Wokwi a simulação pode rodar abaixo do tempo real (ex.: 25%).
   const remainingS = telemetry ? telemetry.light.remainingS : null;
 
   return {
@@ -143,7 +123,9 @@ export function useTrafficTelemetry(): TrafficTelemetryState {
     receivedAt,
     ageMs,
     remainingS,
-    history,
-    events,
+    stats,
+    passages,
+    lastPassageEvent,
+    sendCommand,
   };
 }

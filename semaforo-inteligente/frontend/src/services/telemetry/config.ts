@@ -4,17 +4,20 @@ import type { DataSourceKind } from '../../types/traffic';
 export const MQTT_BASE = 'fatec/semaforo/01';
 
 export const MQTT_TOPICS = {
-  ultrasonic: `${MQTT_BASE}/sensor/ultrassonico`,
-  button: `${MQTT_BASE}/sensor/botao`,
+  // Semáforo (ESP32 → Node-RED)
   state: `${MQTT_BASE}/estado`,
   status: `${MQTT_BASE}/status`,
-  greenTimeCmd: `${MQTT_BASE}/cmd/tempo_verde`,
+  button: `${MQTT_BASE}/sensor/botao`,
+  /** Carro detectado pelo HC-SR04 do próprio Wokwi (slider do sensor). */
+  vehicle: `${MQTT_BASE}/sensor/veiculo`,
+  // Comandos (dashboard → Node-RED → ESP32)
+  /** Clique no botão de pedestre do poste. */
+  virtualButtonCmd: `${MQTT_BASE}/cmd/botao_virtual`,
+  /** Passagem gravada no banco: o ESP32 apita o buzzer. */
+  passageCmd: `${MQTT_BASE}/cmd/passagem`,
 } as const;
 
-/**
- * Ligações do circuito no Wokwi (diagram.json). São os 3 componentes do projeto:
- * LEDs do semáforo, botão de pedestre e HC-SR04 contando os carros.
- */
+/** Ligações do circuito no Wokwi (diagram.json). */
 export const WOKWI_PINS = {
   ledRed: 25,
   ledYellow: 26,
@@ -22,6 +25,7 @@ export const WOKWI_PINS = {
   button: 14,
   ultrasonicTrig: 5,
   ultrasonicEcho: 18,
+  buzzer: 13,
 } as const;
 
 export const DEFAULT_WS_URL = 'ws://localhost:1880/ws/semaforo';

@@ -61,18 +61,9 @@
         "problemMatcher": []
       },
       {
-        "label": "ESP32 de teste (sem Wokwi, teclas c/p)",
+        "label": "ESP32 de teste (sem Wokwi: p = botão, c = sensor)",
         "type": "shell",
         "command": "npm run esp32-fake",
-        "options": { "cwd": "${workspaceFolder:node-red}" },
-        "isBackground": true,
-        "problemMatcher": [],
-        "presentation": { "panel": "dedicated" }
-      },
-      {
-        "label": "ESP32 de teste automático (sem Wokwi)",
-        "type": "shell",
-        "command": "npm run esp32-fake -- --auto",
         "options": { "cwd": "${workspaceFolder:node-red}" },
         "isBackground": true,
         "problemMatcher": [],

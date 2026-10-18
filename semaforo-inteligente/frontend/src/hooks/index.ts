@@ -1,8 +1,7 @@
 /**
  * Export centralizado dos hooks customizados.
- * 
- * Facilita importações: import { useCharacterControl } from '../hooks';
  */
 
-export * from './useCharacterControl';
+export * from './usePedestrianWalker';
 export * from './useTrafficTelemetry';
+export * from './useBeep';

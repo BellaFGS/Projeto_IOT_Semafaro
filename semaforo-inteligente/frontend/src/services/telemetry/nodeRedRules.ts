@@ -1,165 +1,169 @@
-import type { LightState, TrafficAlert, TrafficMode, TrafficTelemetry } from '../../types/traffic';
+import type {
+  LightState,
+  LightTimes,
+  Passage,
+  PassageEvent,
+  PassageStats,
+  TrafficAlert,
+  TrafficMode,
+  TrafficTelemetry,
+} from '../../types/traffic';
 import { MQTT_TOPICS } from './config';
 
 /**
- * Regras do Node-RED, em TypeScript.
- *
- * É a mesma lógica do nó function "Regras do semáforo" descrito no README:
- * recebe cada mensagem MQTT do ESP32, guarda o último valor de cada tópico
- * e monta o objeto `TrafficTelemetry` que vai para o dashboard.
- * A simulação usa este módulo para que os dados fictícios passem pelas
- * mesmas regras que os reais vão passar.
+ * O fluxo do Node-RED em TypeScript, para a simulação no navegador (`?fonte=simulacao`).
+ * Espelha as funções de node-red/flows.json:
+ *   - ingest(): "Estado do semáforo" — MQTT do ESP32 → telemetria do dashboard.
+ *   - registerPassage(): "Validar passagem" + "Registrar passagem" + "Avisar dashboard e
+ *     ESP32" — valida e grava a passagem (aqui, em memória no lugar do SQLite) com o sinal
+ *     oficial do ESP32.
  */
 
 export const DEVICE_ID = 'esp32-semaforo-01';
-/** Distância abaixo da qual o HC-SR04 considera que há veículo na faixa. */
-export const DETECTION_CM = 50;
-/** Distância de alerta: veículo avançando sobre a faixa. */
-export const TOO_CLOSE_CM = 20;
-/** Veículos/min a partir do qual o fluxo é considerado intenso. */
-export const HEAVY_FLOW_PER_MIN = 8;
-export const GREEN_NORMAL_S = 12;
-export const GREEN_EXTENDED_S = 16;
 export const WEAK_SIGNAL_DBM = -80;
+/** Placas aceitas pelo nó "Validar passagem". */
+const PLACAS = ['1', '2', '3', 'WOKWI'];
+/** Mesma placa em menos que isso = leitura duplicada do sensor. */
+const DUPLICATE_WINDOW_MS = 3000;
 
 export interface MqttMessage {
   topic: string;
   payload: unknown;
 }
 
-interface RulesMemory {
-  distanceCm: number;
-  vehicleDetected: boolean;
-  vehicleCount: number;
-  detections: number[];
+interface SemaphoreState {
   light: LightState;
   remainingS: number;
   durationS: number;
   pedestrianRequest: boolean;
+  times: LightTimes | null;
   online: boolean;
   wifiRssi: number;
   uptimeS: number;
-  greenCmdS: number;
   hasState: boolean;
 }
 
-export interface RulesOutput {
+export interface IngestOutput {
   /** null até chegar o primeiro estado do semáforo (no Node-RED: função retorna null). */
   telemetry: TrafficTelemetry | null;
-  /** Comando para publicar de volta ao ESP32, quando alguma regra pede. */
-  command?: MqttMessage;
+  /** O HC-SR04 do Wokwi detectou um carro (slider): registrar como passagem. */
+  passage?: { placa: string; sinal: LightState };
 }
 
 const obj = (v: unknown): Record<string, unknown> =>
   typeof v === 'object' && v !== null ? (v as Record<string, unknown>) : {};
 
 export function createNodeRedRules() {
-  const mem: RulesMemory = {
-    distanceCm: 400,
-    vehicleDetected: false,
-    vehicleCount: 0,
-    detections: [],
+  const s: SemaphoreState = {
     light: 'RED',
     remainingS: 0,
     durationS: 0,
     pedestrianRequest: false,
+    times: null,
     online: false,
     wifiRssi: -100,
     uptimeS: 0,
-    greenCmdS: GREEN_NORMAL_S,
     hasState: false,
   };
+  // No Node-RED real isto vem do SQLite (tabela passagens).
+  const passages: Passage[] = [];
+  let nextId = 1;
+  const lastByPlate: Record<string, number> = {};
 
-  return function ingest({ topic, payload }: MqttMessage, now = Date.now()): RulesOutput {
+  const stats = (now: number): PassageStats => ({
+    total: passages.length,
+    green: passages.filter(p => p.light === 'GREEN').length,
+    yellow: passages.filter(p => p.light === 'YELLOW').length,
+    red: passages.filter(p => p.light === 'RED').length,
+    perMin: passages.filter(p => now - Date.parse(p.at) < 60_000).length,
+  });
+
+  /** "Estado do semáforo" */
+  function ingest({ topic, payload }: MqttMessage, now = Date.now()): IngestOutput {
     const p = obj(payload);
+    let passage: IngestOutput['passage'];
 
     switch (topic) {
-      case MQTT_TOPICS.ultrasonic: {
-        mem.distanceCm = Number(p.distanceCm ?? mem.distanceCm);
-        const detected = mem.distanceCm < DETECTION_CM;
-        // Borda de subida: um veículo novo entrou na área do sensor.
-        if (detected && !mem.vehicleDetected) {
-          mem.vehicleCount += 1;
-          mem.detections.push(now);
-        }
-        mem.vehicleDetected = detected;
-        break;
-      }
-      case MQTT_TOPICS.button:
-        if (p.pressed) mem.pedestrianRequest = true;
-        break;
       case MQTT_TOPICS.state:
-        mem.light = (p.light as LightState) ?? mem.light;
-        mem.remainingS = Number(p.remainingS ?? mem.remainingS);
-        mem.durationS = Number(p.durationS ?? mem.durationS);
-        mem.pedestrianRequest = Boolean(p.pedestrianRequest);
-        mem.online = true;
-        mem.hasState = true;
+        s.light = (p.light as LightState) ?? s.light;
+        s.remainingS = Number(p.remainingS ?? s.remainingS);
+        s.durationS = Number(p.durationS ?? s.durationS);
+        s.pedestrianRequest = Boolean(p.pedestrianRequest);
+        if (p.tempos) s.times = p.tempos as LightTimes;
+        s.online = true;
+        s.hasState = true;
         break;
       case MQTT_TOPICS.status:
-        mem.online = Boolean(p.online);
-        if (p.wifiRssi !== undefined) mem.wifiRssi = Number(p.wifiRssi);
-        if (p.uptimeS !== undefined) mem.uptimeS = Number(p.uptimeS);
+        s.online = Boolean(p.online);
+        if (p.wifiRssi !== undefined) s.wifiRssi = Number(p.wifiRssi);
+        if (p.uptimeS !== undefined) s.uptimeS = Number(p.uptimeS);
         break;
+      case MQTT_TOPICS.button:
+        if (p.pressed) s.pedestrianRequest = true;
+        break;
+      case MQTT_TOPICS.vehicle:
+        passage = { placa: 'WOKWI', sinal: s.light };
+        break;
+      default:
+        return { telemetry: null };
     }
-
-    mem.detections = mem.detections.filter(t => now - t < 60_000);
-    const vehiclesPerMin = mem.detections.length;
 
     let mode: TrafficMode = 'AUTOMATICO';
-    if (!mem.online) mode = 'ATENCAO';
-    else if (mem.pedestrianRequest) mode = 'PEDESTRE';
-    else if (vehiclesPerMin >= HEAVY_FLOW_PER_MIN) mode = 'FLUXO_INTENSO';
+    if (!s.online) mode = 'ATENCAO';
+    else if (s.pedestrianRequest) mode = 'PEDESTRE';
 
     const alerts: TrafficAlert[] = [];
-    if (!mem.online) {
-      alerts.push({ level: 'critical', code: 'DISPOSITIVO_OFFLINE', message: 'ESP32 sem comunicação com o broker MQTT' });
-    }
-    if (mem.distanceCm < TOO_CLOSE_CM) {
-      alerts.push({ level: 'warning', code: 'VEICULO_PROXIMO', message: `Veículo sobre a faixa (${mem.distanceCm.toFixed(0)} cm)` });
-    }
-    if (mode === 'FLUXO_INTENSO') {
-      alerts.push({ level: 'warning', code: 'FLUXO_INTENSO', message: `Fluxo intenso: verde estendido para ${GREEN_EXTENDED_S}s` });
-    }
-    if (mem.pedestrianRequest) {
-      alerts.push({ level: 'info', code: 'PEDESTRE_AGUARDANDO', message: 'Pedestre aguardando travessia' });
-    }
-    if (mem.online && mem.wifiRssi < WEAK_SIGNAL_DBM) {
-      alerts.push({ level: 'warning', code: 'SINAL_FRACO', message: `Wi-Fi fraco no ESP32 (${mem.wifiRssi} dBm)` });
+    if (!s.online) alerts.push({ level: 'critical', code: 'DISPOSITIVO_OFFLINE', message: 'ESP32 sem comunicação com o broker MQTT' });
+    if (s.pedestrianRequest) alerts.push({ level: 'info', code: 'PEDESTRE_AGUARDANDO', message: 'Pedestre aguardando travessia' });
+    if (s.online && s.wifiRssi < WEAK_SIGNAL_DBM) {
+      alerts.push({ level: 'warning', code: 'SINAL_FRACO', message: `Wi-Fi fraco no ESP32 (${s.wifiRssi} dBm)` });
     }
 
-    // Automação: ajusta o tempo de verde do ESP32 conforme o fluxo.
-    let command: MqttMessage | undefined;
-    const wantedGreen = mode === 'FLUXO_INTENSO' ? GREEN_EXTENDED_S : GREEN_NORMAL_S;
-    if (mem.online && wantedGreen !== mem.greenCmdS) {
-      mem.greenCmdS = wantedGreen;
-      command = { topic: MQTT_TOPICS.greenTimeCmd, payload: { durationS: wantedGreen } };
-    }
-
-    if (!mem.hasState) return { command, telemetry: null };
-
+    if (!s.hasState) return { telemetry: null, passage };
     return {
-      command,
+      passage,
       telemetry: {
         type: 'telemetry',
         deviceId: DEVICE_ID,
         timestamp: new Date(now).toISOString(),
-        light: { state: mem.light, remainingS: mem.remainingS, durationS: mem.durationS },
+        light: { state: s.light, remainingS: s.remainingS, durationS: s.durationS },
+        times: s.times,
         mode,
-        sensors: {
-          ultrasonicCm: Math.round(mem.distanceCm * 10) / 10,
-          vehicleDetected: mem.vehicleDetected,
-          pedestrianRequest: mem.pedestrianRequest,
-        },
-        flow: { vehicleCount: mem.vehicleCount, vehiclesPerMin },
-        actuators: {
-          ledRed: mem.light === 'RED',
-          ledYellow: mem.light === 'YELLOW',
-          ledGreen: mem.light === 'GREEN',
-        },
-        device: { online: mem.online, wifiRssi: mem.wifiRssi, uptimeS: mem.uptimeS },
+        pedestrianRequest: s.pedestrianRequest,
+        actuators: { ledRed: s.light === 'RED', ledYellow: s.light === 'YELLOW', ledGreen: s.light === 'GREEN' },
+        device: { online: s.online, wifiRssi: s.wifiRssi, uptimeS: s.uptimeS },
         alerts,
+        passages: stats(now),
+        lastPassage: passages.at(-1) ?? null,
       },
     };
-  };
+  }
+
+  /** "Validar passagem" + "Registrar passagem" + "Avisar dashboard e ESP32" */
+  function registerPassage(rawPlaca: string, _sinalDashboard: LightState | null, now = Date.now()) {
+    // Validação (igual ao nó "Validar passagem" do Node-RED)
+    const placa = String(rawPlaca).trim().toUpperCase();
+    if (!PLACAS.includes(placa)) return null;
+    if (!s.hasState || !s.online) return null; // sem semáforo não dá para verificar o sinal
+    if (lastByPlate[placa] && now - lastByPlate[placa] < DUPLICATE_WINDOW_MS) return null;
+    lastByPlate[placa] = now;
+    // O sinal oficial é o último estado do ESP32, não o que o dashboard mandou.
+    const light = s.light;
+    const passage: Passage = {
+      id: nextId++,
+      at: new Date(now).toISOString(),
+      plate: placa,
+      light,
+      violation: light === 'RED',
+    };
+    passages.push(passage);
+    const event: PassageEvent = { type: 'passagem', passage, stats: stats(now) };
+    const command: MqttMessage = {
+      topic: MQTT_TOPICS.passageCmd,
+      payload: { placa, sinal: light, infracao: passage.violation },
+    };
+    return { event, command };
+  }
+
+  return { ingest, registerPassage };
 }
