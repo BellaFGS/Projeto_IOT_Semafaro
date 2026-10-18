@@ -30,23 +30,13 @@ export const TIMER = { left: px(1252), top: py(858) } as const;
 /** Caixa do botão de pedestre no mesmo poste (x 1153–1173, y 1390–1444). */
 export const PED_BUTTON = { left: px(1149), top: py(1386), width: px(28), height: py(62) } as const;
 
-/** HC-SR04 preso no poste (centro x 1145), abaixo do botão. */
-export const SENSOR = { left: px(1145), top: py(1478) } as const;
-
 /** Calçada da frente: y 1614–1734. Os pés do personagem ficam no meio dela. */
-export const SIDEWALK_FEET_BOTTOM = `${100 - (1700 / BG_HEIGHT) * 100}%`;
+export const SIDEWALK_FEET_Y = 1700;
+export const SIDEWALK_FEET_BOTTOM = `${100 - (SIDEWALK_FEET_Y / BG_HEIGHT) * 100}%`;
 /**
  * Altura do quadro do personagem em fração da imagem. O sprite ocupa ~60% do
  * quadro, então 0.3 dá um personagem da altura aproximada das portas das casas.
  */
 export const CHARACTER_HEIGHT = 0.3;
 
-/** Rua principal (y 1782–2048); os carros vão pela faixa de baixo. */
-export const CAR = {
-  width: px(420),
-  bottom: '1.2%',
-  /** Teto do carro parado, medido do topo da imagem (onde o feixe do sensor termina). */
-  top: '89.5%',
-  /** Frente do carro para antes da rua lateral (meio-fio esquerdo em x ~1213). */
-  stopLeft: px(1200 - 420),
-} as const;
+// Geometria das ruas e dos carros: components/game/traffic/roadGeometry.ts

@@ -1,46 +1,52 @@
 # 🗄️ Banco de dados — SQLite
 
-**Por que SQLite:** o projeto roda numa máquina só, para a apresentação. O SQLite é um arquivo
-(`semaforo.db`), não precisa instalar nem configurar servidor, o Node-RED já tem o nó pronto
-(`node-red-node-sqlite`) e as consultas são SQL comum, fáceis de mostrar na avaliação.
+O banco guarda **só o sistema de carros**: cada carro que passou pelo sensor e a cor do
+semáforo no momento da passagem. Passar no **vermelho** é infração (a "multa" da simulação).
 
-- `schema.sql`: tabelas, índices e views. O Node-RED executa este arquivo toda vez que inicia
-  (é idempotente: `CREATE ... IF NOT EXISTS`).
+**Por que SQLite:** o projeto roda numa máquina só. O banco é um arquivo (`semaforo.db`), não
+precisa de servidor, o Node-RED já tem o nó pronto (`node-red-node-sqlite`) e as consultas são
+SQL comum. Para ver os dados: **DB Browser for SQLite** (abra o `semaforo.db` em modo somente
+leitura enquanto o Node-RED estiver rodando).
+
+- `schema.sql`: tabela, índices e views. O Node-RED executa este arquivo toda vez que inicia
+  (é idempotente). Ele também apaga as tabelas da versão antiga do projeto, se existirem.
 - `semaforo.db`: criado automaticamente. Não vai para o Git.
 
-## Tabelas
+## Tabela `passagens`
 
-| Tabela | Uma linha por… | Colunas principais |
+| Coluna | Tipo | Exemplo |
 |---|---|---|
-| `veiculos` | carro contado pelo HC-SR04 | `registrado_em`, `distancia_cm`, `estado_sinal` |
-| `mudancas_sinal` | troca de cor dos LEDs | `estado`, `duracao_s`, `modo` |
-| `pedidos_pedestre` | aperto do botão | `estado_sinal` no momento |
-| `alertas` | alerta que surgiu | `nivel`, `codigo`, `mensagem` |
-| `leituras` | amostra a cada 5 s | `distancia_cm`, `carros_por_min`, `wifi_rssi`, `online` |
-| `comandos` | comando do Node-RED ao ESP32 | `topico`, `payload` |
+| `id` | inteiro, autoincremento | `8` |
+| `registrado_em` | texto ISO 8601 (UTC) | `2026-10-18T22:33:38.120Z` |
+| `placa` | texto | `2` (carros do dashboard: 1, 2, 3 · `WOKWI`: slider do HC-SR04 no simulador) |
+| `sinal` | `VERDE` · `AMARELO` · `VERMELHO` | `VERMELHO` |
 
-Views: `v_eventos` (linha do tempo usada no card Histórico) e `v_carros_por_hora`.
+O sinal gravado é o **oficial do ESP32** (último estado que o Wokwi publicou) no instante em
+que o carro cruzou o sensor no dashboard.
 
-Datas em ISO 8601 UTC. Para horário local: `datetime(registrado_em, 'localtime')`.
+## Views
+
+| View | O que mostra |
+|---|---|
+| `v_infracoes` | Só as passagens no vermelho (as multas) |
+| `v_resumo_por_placa` | Por carro: total de passagens, quantas no verde, no amarelo e infrações |
 
 ## Consultas úteis
 
 ```sql
--- Carros por hora hoje
-SELECT * FROM v_carros_por_hora WHERE hora >= date('now', 'localtime');
+-- Últimas 10 passagens, em horário local
+SELECT id, datetime(registrado_em, 'localtime') AS quando, placa, sinal
+  FROM passagens ORDER BY id DESC LIMIT 10;
 
--- Em que cor o sinal estava quando cada carro passou
-SELECT estado_sinal, COUNT(*) FROM veiculos GROUP BY estado_sinal;
+-- Multas por carro
+SELECT placa, COUNT(*) AS multas FROM v_infracoes GROUP BY placa;
 
--- Quantas vezes o Node-RED estendeu o verde
-SELECT COUNT(*) FROM comandos WHERE payload LIKE '%16%';
+-- Distribuição das passagens por cor do sinal
+SELECT sinal, COUNT(*) FROM passagens GROUP BY sinal;
 
--- Últimos 10 eventos
-SELECT datetime(registrado_em, 'localtime') AS quando, tipo, mensagem
-  FROM v_eventos ORDER BY registrado_em DESC LIMIT 10;
+-- Resumo por carro
+SELECT * FROM v_resumo_por_placa;
 ```
 
-Para abrir o arquivo: extensão **SQLite Viewer** do VS Code, DB Browser for SQLite, ou pela API do
-Node-RED (`http://localhost:1880/api/estatisticas`).
-
-Para zerar os dados: pare o Node-RED e apague `semaforo.db`, `semaforo.db-wal` e `semaforo.db-shm`.
+Para zerar os dados: pare o Node-RED e apague `semaforo.db`, `semaforo.db-wal` e `semaforo.db-shm`
+(ou rode `DELETE FROM passagens;`).

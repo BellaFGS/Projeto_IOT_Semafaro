@@ -1,16 +1,20 @@
 /*
  * Semáforo Inteligente — firmware do ESP32 (Wokwi + PlatformIO)
  *
- * Componentes:
- *   - LEDs vermelho/amarelo/verde (GPIO 25/26/27): o ciclo do semáforo roda aqui,
- *     então o sinal continua funcionando mesmo sem rede.
- *   - Botão de pedestre (GPIO 14): durante o verde/amarelo, corta o verde para 3 s
- *     e o vermelho seguinte dura 10 s para a travessia.
- *   - HC-SR04 (TRIG 5 / ECHO 18): mede a distância do carro na faixa. No Wokwi,
- *     clique no sensor e arraste a distância abaixo de 50 cm para "passar um carro".
+ * Sistema 1 — SEMÁFORO (roda aqui, mesmo sem rede):
+ *   - LEDs vermelho/amarelo/verde (GPIO 25/26/27) com o tempo de cada cor em config.h.
+ *   - Botão de pedestre (GPIO 14) ou clique no botão do poste no dashboard
+ *     (cmd/botao_virtual): no verde/amarelo, o verde termina em até 3 s e o
+ *     vermelho seguinte dura 10 s para a travessia.
+ *   - Publica o estado a cada segundo; o Node-RED repassa ao dashboard, e os
+ *     carros do minigame obedecem a essa cor.
  *
- * Publica tudo em MQTT; o Node-RED conta os carros, aplica as regras e pode
- * mudar o tempo de verde pelo tópico cmd/tempo_verde.
+ * Sistema 2 — CARROS (identificação):
+ *   - Quando um carro do minigame passa pelo sensor, o Node-RED grava a passagem
+ *     no banco e avisa aqui (cmd/passagem): o buzzer (GPIO 13) apita uma vez se o
+ *     carro passou no verde/amarelo e três vezes se passou no vermelho (infração).
+ *   - O HC-SR04 (TRIG 5 / ECHO 18) do Wokwi também registra um carro: arraste a
+ *     distância abaixo de 50 cm no simulador.
  */
 #include <Arduino.h>
 #include <WiFi.h>
@@ -21,9 +25,8 @@
 enum Light { GREEN, YELLOW, RED };
 
 Light light = GREEN;
-int greenDurationS = GREEN_DEFAULT_S;
-int durationS = GREEN_DEFAULT_S;
-int remainingS = GREEN_DEFAULT_S;
+int durationS = GREEN_S;
+int remainingS = GREEN_S;
 bool pedestrianRequest = false;
 bool carNearby = false;
 
@@ -40,6 +43,12 @@ const char* lightName(Light l) {
   return l == GREEN ? "GREEN" : l == YELLOW ? "YELLOW" : "RED";
 }
 
+const char* lightNamePt(const char* en) {
+  if (strcmp(en, "GREEN") == 0) return "VERDE";
+  if (strcmp(en, "YELLOW") == 0) return "AMARELO";
+  return "VERMELHO";
+}
+
 void applyLeds() {
   digitalWrite(PIN_LED_RED, light == RED);
   digitalWrite(PIN_LED_YELLOW, light == YELLOW);
@@ -51,6 +60,13 @@ void publishJson(const char* topic, JsonDocument& doc, bool retain = false) {
   char buf[256];
   size_t n = serializeJson(doc, buf, sizeof(buf));
   mqtt.publish(topic, (const uint8_t*)buf, n, retain);
+}
+
+void beep(int times) {
+  for (int i = 0; i < times; i++) {
+    tone(PIN_BUZZER, BUZZER_FREQ_HZ, BUZZER_BEEP_MS);
+    if (i < times - 1) delay(BUZZER_BEEP_MS + 70);
+  }
 }
 
 float readDistanceCm() {
@@ -77,6 +93,11 @@ void publishState() {
   doc["remainingS"] = remainingS;
   doc["durationS"] = durationS;
   doc["pedestrianRequest"] = pedestrianRequest;
+  JsonObject tempos = doc["tempos"].to<JsonObject>();
+  tempos["verde"] = GREEN_S;
+  tempos["amarelo"] = YELLOW_S;
+  tempos["vermelho"] = RED_S;
+  tempos["vermelhoPedestre"] = RED_WITH_PEDESTRIAN_S;
   publishJson(TOPIC_STATE, doc);
 }
 
@@ -90,22 +111,43 @@ void nextLight() {
     pedestrianRequest = false;  // a travessia acontece neste vermelho
   } else {
     light = GREEN;
-    durationS = greenDurationS;
+    durationS = GREEN_S;
   }
   remainingS = durationS;
   applyLeds();
   Serial.printf("[SINAL] %s por %ds\n", lightName(light), durationS);
 }
 
-// Comando do Node-RED: {"durationS": 16}
+// Pedido de travessia: botão físico ou clique no botão do poste no dashboard.
+void requestPedestrian(const char* origem) {
+  if (pedestrianRequest || light == RED) {
+    Serial.printf("[BOTAO] %s: ignorado (%s)\n", origem, pedestrianRequest ? "já pedido" : "já está vermelho");
+    return;
+  }
+  pedestrianRequest = true;
+  if (light == GREEN && remainingS > PEDESTRIAN_CUT_S) remainingS = PEDESTRIAN_CUT_S;
+  JsonDocument doc;
+  doc["pressed"] = true;
+  publishJson(TOPIC_BUTTON, doc);
+  publishState();
+  Serial.printf("[BOTAO] %s: pedestre pediu travessia\n", origem);
+}
+
+// Comandos do Node-RED.
+//   cmd/botao_virtual  {"pressed": true}
+//   cmd/passagem       {"placa": "2", "sinal": "RED", "infracao": true}
 void onMqttMessage(char* topic, byte* payload, unsigned int length) {
-  if (strcmp(topic, TOPIC_CMD_GREEN) != 0) return;
   JsonDocument doc;
   if (deserializeJson(doc, payload, length)) return;
-  int s = doc["durationS"] | 0;
-  if (s >= 5 && s <= 60) {
-    greenDurationS = s;
-    Serial.printf("[CMD] tempo de verde = %ds (vale no próximo verde)\n", s);
+
+  if (strcmp(topic, TOPIC_CMD_BUTTON) == 0) {
+    requestPedestrian("dashboard");
+  } else if (strcmp(topic, TOPIC_CMD_PASSAGE) == 0) {
+    const char* placa = doc["placa"] | "?";
+    const char* sinal = doc["sinal"] | "?";
+    bool infracao = doc["infracao"] | false;
+    Serial.printf("[PASSAGEM] carro %s passou no %s%s\n", placa, lightNamePt(sinal), infracao ? " - INFRACAO (multa)" : "");
+    beep(infracao ? 3 : 1);
   }
 }
 
@@ -126,7 +168,8 @@ bool connectMqtt() {
   // Last Will: se o ESP32 cair, o broker publica {"online":false} no status.
   if (mqtt.connect(DEVICE_ID, nullptr, nullptr, TOPIC_STATUS, 0, true, "{\"online\":false}")) {
     Serial.println("ok");
-    mqtt.subscribe(TOPIC_CMD_GREEN);
+    mqtt.subscribe(TOPIC_CMD_BUTTON);
+    mqtt.subscribe(TOPIC_CMD_PASSAGE);
     publishStatus();
     publishState();
     return true;
@@ -139,29 +182,22 @@ void handleButton(unsigned long now) {
   bool level = digitalRead(PIN_BUTTON);
   if (level == LOW && lastButtonLevel == HIGH && now - lastButtonMs > 50) {
     lastButtonMs = now;
-    if (!pedestrianRequest && light != RED) {
-      pedestrianRequest = true;
-      if (light == GREEN && remainingS > PEDESTRIAN_CUT_S) remainingS = PEDESTRIAN_CUT_S;
-      JsonDocument doc;
-      doc["pressed"] = true;
-      publishJson(TOPIC_BUTTON, doc);
-      publishState();
-      Serial.println("[BOTAO] pedestre pediu travessia");
-    }
+    requestPedestrian("botão físico");
   }
   lastButtonLevel = level;
 }
 
+// HC-SR04 do Wokwi: cada vez que a distância cai abaixo de 50 cm, avisa um carro.
 void handleSensor() {
   float cm = readDistanceCm();
   bool near = cm < DETECTION_CM;
-  if (near != carNearby) {
-    carNearby = near;
-    Serial.printf(near ? "[SENSOR] carro na faixa (%.1f cm)\n" : "[SENSOR] faixa livre (%.1f cm)\n", cm);
+  if (near && !carNearby) {
+    JsonDocument doc;
+    doc["distanceCm"] = roundf(cm * 10) / 10.0f;
+    publishJson(TOPIC_VEHICLE, doc);
+    Serial.printf("[SENSOR] carro detectado pelo HC-SR04 (%.1f cm)\n", cm);
   }
-  JsonDocument doc;
-  doc["distanceCm"] = roundf(cm * 10) / 10.0f;
-  publishJson(TOPIC_ULTRASONIC, doc);
+  carNearby = near;
 }
 
 void setup() {
@@ -172,10 +208,12 @@ void setup() {
   pinMode(PIN_BUTTON, INPUT_PULLUP);
   pinMode(PIN_TRIG, OUTPUT);
   pinMode(PIN_ECHO, INPUT);
+  pinMode(PIN_BUZZER, OUTPUT);
   applyLeds();  // o semáforo funciona mesmo antes da rede
 
   Serial.println("================================");
   Serial.println(" SEMAFORO INTELIGENTE - ESP32");
+  Serial.printf(" Verde %ds | Amarelo %ds | Vermelho %ds (%ds com pedestre)\n", GREEN_S, YELLOW_S, RED_S, RED_WITH_PEDESTRIAN_S);
   Serial.println("================================");
 
   connectWifi();

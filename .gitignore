@@ -30,6 +30,7 @@ semaforo-inteligente/database/*.db-shm
 
 # Node-RED: arquivos de runtime gerados no userDir
 semaforo-inteligente/node-red/.config.*.json
+semaforo-inteligente/node-red/.config.*.json.backup
 semaforo-inteligente/node-red/.flows*.json.backup
 semaforo-inteligente/node-red/.sessions.json
 semaforo-inteligente/node-red/lib/
@@ -40,3 +41,6 @@ semaforo-inteligente/node-red/context/
 
 # Configuração local do Claude
 .claude/
+
+# Capturas temporárias do Playwright
+.playwright-mcp/

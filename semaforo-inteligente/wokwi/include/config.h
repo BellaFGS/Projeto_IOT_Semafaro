@@ -15,11 +15,15 @@
 
 // ---------- Tópicos (iguais a frontend/src/services/telemetry/config.ts) ----------
 #define TOPIC_BASE "fatec/semaforo/01"
-#define TOPIC_ULTRASONIC TOPIC_BASE "/sensor/ultrassonico"
-#define TOPIC_BUTTON TOPIC_BASE "/sensor/botao"
+// Semáforo (ESP32 → Node-RED → dashboard)
 #define TOPIC_STATE TOPIC_BASE "/estado"
 #define TOPIC_STATUS TOPIC_BASE "/status"
-#define TOPIC_CMD_GREEN TOPIC_BASE "/cmd/tempo_verde"
+#define TOPIC_BUTTON TOPIC_BASE "/sensor/botao"
+// Carro detectado pelo HC-SR04 do Wokwi (slider do sensor)
+#define TOPIC_VEHICLE TOPIC_BASE "/sensor/veiculo"
+// Comandos (dashboard → Node-RED → ESP32)
+#define TOPIC_CMD_BUTTON TOPIC_BASE "/cmd/botao_virtual"
+#define TOPIC_CMD_PASSAGE TOPIC_BASE "/cmd/passagem"
 
 // ---------- Pinos (iguais ao diagram.json) ----------
 #define PIN_LED_RED 25
@@ -28,18 +32,25 @@
 #define PIN_BUTTON 14
 #define PIN_TRIG 5
 #define PIN_ECHO 18
+#define PIN_BUZZER 13
 
-// ---------- Tempos do semáforo (segundos) ----------
-#define GREEN_DEFAULT_S 12
+// ---------- Tempo de cada LED (segundos) ----------
+#define GREEN_S 12
 #define YELLOW_S 3
 #define RED_S 8
+// Vermelho mais longo quando um pedestre pediu travessia
 #define RED_WITH_PEDESTRIAN_S 10
+// Ao apertar o botão no verde, o verde termina em no máximo 3 s
 #define PEDESTRIAN_CUT_S 3
 
 // ---------- Sensor ----------
-// Abaixo desta distância há carro na faixa (só para o log serial; quem conta é o Node-RED).
+// Abaixo desta distância o HC-SR04 do Wokwi considera que há um carro.
 #define DETECTION_CM 50
 
-// ---------- Intervalos de publicação (ms) ----------
-#define SENSOR_INTERVAL_MS 500
+// ---------- Buzzer ----------
+#define BUZZER_FREQ_HZ 1760
+#define BUZZER_BEEP_MS 90
+
+// ---------- Intervalos (ms) ----------
+#define SENSOR_INTERVAL_MS 300
 #define STATUS_INTERVAL_MS 10000

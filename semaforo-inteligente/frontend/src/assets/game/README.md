@@ -6,9 +6,8 @@
 | `traffic-light/on/` | `red.png`, `yellow.png`, `green.png`: luz **acesa** | `components/game/BackgroundTrafficLight.tsx` |
 | `traffic-light/off/` | `red.png`, `yellow.png`, `green.png`: luz **apagada** (96×96, fundo transparente) | `components/game/BackgroundTrafficLight.tsx` |
 | `character/` | `player1.png` … `player10.png`: quadros da caminhada do personagem | `components/game/GameScene.tsx` |
-| `vehicles/`, `objects/`, `effects/`, `scenes/` | Reservadas para novos sprites | — |
-
-O carro é desenhado em código (SVG pixel art em `components/game/Car.tsx`), não usa imagem.
+| `vehicles/` | `car-front.png`, `car-back.png`, `car-side.png`: carro de frente, de costas e de lado (recortados) | `components/game/traffic/TrafficCars.tsx` |
+| `objects/`, `effects/`, `scenes/` | Reservadas para novos sprites | — |
 
 ## Artes originais
 
@@ -19,6 +18,7 @@ Aqui entram só as versões otimizadas para o navegador:
 |---|---|---|
 | `rua-melhorada-original.png` (8 MB) | `backgrounds/rua-melhorada.webp` (0,9 MB) | WebP qualidade 90, mesmo tamanho |
 | `semaforo-*-off-original.png` (~420 KB) | `traffic-light/off/*.png` (~6 KB) | margem transparente cortada e reduzida para 96×96 |
+| `carro-*-original.png` | `vehicles/car-*.png` | margem transparente cortada |
 
 ## Trocar o fundo
 
