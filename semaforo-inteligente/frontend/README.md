@@ -2,16 +2,16 @@
 
 Front-end do projeto **Semáforo Inteligente** (FATEC Sorocaba · Mobilidade urbana).
 É um mini dashboard em pixel art, **somente leitura**, sobre um cenário 2D com rua, faixa de pedestres,
-pórtico com semáforo e um personagem. Tudo o que aparece na tela vem do fluxo de dados do projeto:
+pórtico com semáforo, sensor HC-SR04, carros e um personagem. Tudo o que aparece na tela vem do fluxo de dados do projeto:
 
 ```
-HC-SR04 + botão ──► ESP32 (Wokwi/PlatformIO) ──► MQTT (broker) ──► Node-RED ──► WebSocket ──► Dashboard
-      LEDs ◄──────────────── comando (tempo de verde) ◄──────────────┘
+HC-SR04 + botão ──► ESP32 (Wokwi/PlatformIO) ──► MQTT (Aedes) ──► Node-RED ──► WebSocket + API ──► Dashboard
+      LEDs ◄──────────────── comando (tempo de verde) ◄─────────────┘   └──► SQLite
 ```
 
-Enquanto o circuito real do Wokwi não está pronto, o front roda uma **simulação fictícia do ESP32**
-que publica exatamente os mesmos tópicos e JSON do firmware e passa pelas mesmas regras do Node-RED.
-Para ligar nos dados reais, basta trocar a fonte para `websocket` (sem mudar código).
+Por padrão (`npm run dev`) o dashboard lê os dados do Node-RED, que recebe o ESP32 do Wokwi. Também
+há uma **simulação fictícia do ESP32** no próprio navegador (`?fonte=simulacao`), que publica os mesmos
+tópicos e JSON do firmware e passa pelas mesmas regras: serve para apresentar sem back-end.
 
 ---
 
@@ -19,15 +19,10 @@ Para ligar nos dados reais, basta trocar a fonte para `websocket` (sem mudar có
 
 1. [O que o dashboard mostra](#1-o-que-o-dashboard-mostra)
 2. [Como executar](#2-como-executar)
-3. [Fonte de dados: simulação × Node-RED](#3-fonte-de-dados-simulação--node-red)
+3. [Fonte de dados: Node-RED × simulação](#3-fonte-de-dados-node-red--simulação)
 4. [Simulação do Wokwi (3 componentes)](#4-simulação-do-wokwi-3-componentes)
 5. [Contrato de dados (JSON do Node-RED → dashboard)](#5-contrato-de-dados-json-do-node-red--dashboard)
-6. [Guia do back-end](#6-guia-do-back-end)
-   - [6.1 Circuito no Wokwi](#61-circuito-no-wokwi)
-   - [6.2 Firmware do ESP32 (PlatformIO)](#62-firmware-do-esp32-platformio)
-   - [6.3 Tópicos MQTT](#63-tópicos-mqtt)
-   - [6.4 Fluxo do Node-RED](#64-fluxo-do-node-red)
-   - [6.5 Regras e alertas](#65-regras-e-alertas)
+6. [Back-end](#6-back-end)
 7. [Testes de integração (Etapa 8)](#7-testes-de-integração-etapa-8)
 8. [Estrutura de arquivos](#8-estrutura-de-arquivos)
 9. [Identidade visual](#9-identidade-visual)
@@ -45,21 +40,29 @@ O painel cobre os elementos pedidos na Etapa 7 do roteiro:
 | Indicadores | Contagem regressiva e barra do sinal, total de carros, carros/min, modo de operação |
 | Alertas | Faixa **ALERTAS** com os alertas ativos calculados pelo Node-RED |
 | Status dos dispositivos | Card **CIRCUITO WOKWI**: ESP32 ON/OFF, LEDs, botão, sensor, Wi-Fi e tempo ligado |
-| Histórico | Card **HISTÓRICO** com as últimas trocas de sinal e alertas, com horário |
+| Histórico | Card **HISTÓRICO**: ao abrir, carrega os últimos eventos do banco (API do Node-RED) e depois segue ao vivo |
 | Controle dos atuadores | Automático: o Node-RED muda o tempo de verde do ESP32 conforme o fluxo. O dashboard não tem botões |
 
 Se os dados param de chegar (Node-RED fora do ar ou mais de 5 s sem mensagem), o card **CIRCUITO WOKWI** passa para
 `OFF`. Antes da primeira mensagem, os valores aparecem como `--`.
 
-No cenário, o semáforo do pórtico acende a lâmpada recebida na telemetria, o visor mostra o tempo restante
-e o botão de pedestre na calçada pisca quando há pedido de travessia. O único controle do usuário é mover o
-personagem (`←` `→` ou `A` / `D`). O botão **OCULTAR/PAINEL** só esconde o painel.
+No cenário:
+
+- o semáforo do pórtico acende a lâmpada recebida na telemetria e o visor mostra o tempo restante;
+- o botão de pedestre na calçada pisca quando há pedido de travessia;
+- o **HC-SR04** fica preso no poste, com um feixe até a pista que acende quando detecta um carro;
+- **carros**: o Wokwi não tem um "carro", então o carro do cenário é a leitura do HC-SR04. Quando a distância cai
+  abaixo de 50 cm, um carro entra pela esquerda e para antes da faixa, embaixo do sensor. Quando a distância volta a
+  subir, ele segue viagem atravessando a faixa. Cada carro que aparece é um carro contado pelo Node-RED
+  (implementação em [`Car.tsx`](src/components/game/Car.tsx)).
+
+O único controle do usuário é mover o personagem (`←` `→` ou `A` / `D`). O botão **OCULTAR/PAINEL** só esconde o painel.
 
 ---
 
 ## 2. Como executar
 
-Pré-requisitos: Node.js 18+ e npm.
+Pré-requisitos: Node.js 18+ e npm. Para dados reais, suba antes o Node-RED (`../node-red`, `npm start`).
 
 ```bash
 cd semaforo-inteligente/frontend
@@ -79,29 +82,30 @@ As fontes pixel art (Silkscreen e Pixelify Sans) vêm do npm (`@fontsource`), en
 
 ---
 
-## 3. Fonte de dados: simulação × Node-RED
+## 3. Fonte de dados: Node-RED × simulação
 
-A fonte é escolhida em [`src/services/telemetry/config.ts`](src/services/telemetry/config.ts).
-
-**Pelo `.env`** (crie `frontend/.env.local`):
+A fonte é escolhida em [`src/services/telemetry/config.ts`](src/services/telemetry/config.ts). Em
+desenvolvimento, [`.env.development`](.env.development) já aponta para o Node-RED local:
 
 ```bash
-# simulation (padrão) ou websocket
-VITE_DATA_SOURCE=websocket
-# endpoint do nó "websocket out" do Node-RED
-VITE_NODE_RED_WS_URL=ws://localhost:1880/ws/semaforo
+VITE_DATA_SOURCE=websocket                              # ou simulation
+VITE_NODE_RED_WS_URL=ws://localhost:1880/ws/semaforo   # telemetria ao vivo
+VITE_NODE_RED_HTTP_URL=http://localhost:1880           # histórico do banco (/api/...)
 ```
+
+Para mudar só na sua máquina, crie `.env.local` com os valores (não vai para o Git).
 
 **Pela URL**, sem reiniciar (prático na apresentação):
 
 | URL | Fonte |
 |---|---|
-| `http://localhost:5173/` | Simulação do Wokwi (padrão) |
-| `http://localhost:5173/?fonte=ws` | Node-RED em `ws://localhost:1880/ws/semaforo` |
-| `http://localhost:5173/?fonte=ws&ws=ws://192.168.0.10:1880/ws/semaforo` | Node-RED em outra máquina |
+| `http://localhost:5173/` | Node-RED local (padrão em desenvolvimento) |
+| `http://localhost:5173/?fonte=simulacao` | ESP32 fictício no navegador, sem back-end |
+| `http://localhost:5173/?ws=ws://192.168.0.10:1880/ws/semaforo&api=http://192.168.0.10:1880` | Node-RED em outra máquina |
 
 No modo WebSocket o front reconecta sozinho se o Node-RED cair (espera de 1 s, dobrando até 10 s).
-Mensagens fora do contrato são ignoradas e aparecem como aviso no console do navegador.
+Mensagens fora do contrato são ignoradas e aparecem como aviso no console do navegador. Se a API de
+histórico não responder, o dashboard funciona normalmente só com os dados ao vivo.
 
 ---
 
@@ -127,7 +131,7 @@ ESP32 simulado ──(tópico + JSON)──► regras do Node-RED (nodeRedRules.
                 ◄──── cmd/tempo_verde ────┘
 ```
 
-[`nodeRedRules.ts`](src/services/telemetry/nodeRedRules.ts) é a mesma lógica do nó function da [seção 6.4](#64-fluxo-do-node-red).
+[`nodeRedRules.ts`](src/services/telemetry/nodeRedRules.ts) é a mesma lógica do nó function **Regras do semáforo** de [`../node-red/flows.json`](../node-red/flows.json).
 Se uma regra mudar, mude nos dois lugares.
 
 ---
@@ -163,7 +167,7 @@ no WebSocket, sempre com todos os campos:
 | `sensors.ultrasonicCm` | número (cm) | Leitura do HC-SR04 |
 | `sensors.vehicleDetected` | booleano | Distância < 50 cm |
 | `sensors.pedestrianRequest` | booleano | Pedido de travessia pendente |
-| `flow.vehicleCount` | inteiro | Total de carros desde que o Node-RED iniciou |
+| `flow.vehicleCount` | inteiro | Total de carros gravados no banco (continua depois de reiniciar o Node-RED) |
 | `flow.vehiclesPerMin` | número | Carros no último minuto |
 | `actuators.led*` | booleano | Estado dos LEDs. Se faltar, o front deduz pelo `light.state` |
 | `device.online` / `wifiRssi` / `uptimeS` | booleano / dBm / s | Status do ESP32 |
@@ -174,427 +178,24 @@ campos opcionais ausentes recebem padrão e uma mensagem sem `light.state` váli
 
 ---
 
-## 6. Guia do back-end
+## 6. Back-end
 
-### 6.1 Circuito no Wokwi
+O back-end está implementado nas pastas irmãs do front. Cada uma tem seu README:
 
-Componentes: ESP32 DevKit C v4, HC-SR04, 3 LEDs (vermelho, amarelo, verde) com resistores de 220 Ω e um pushbutton.
-
-| Componente | Pino do componente | ESP32 |
+| Parte | Pasta | Resumo |
 |---|---|---|
-| LED vermelho | A (via 220 Ω) / C | GPIO 25 / GND |
-| LED amarelo | A (via 220 Ω) / C | GPIO 26 / GND |
-| LED verde | A (via 220 Ω) / C | GPIO 27 / GND |
-| Botão de pedestre | 1.l / 2.l | GPIO 14 / GND (usa `INPUT_PULLUP`, pressionado = `LOW`) |
-| HC-SR04 | VCC / GND / TRIG / ECHO | 5V / GND / GPIO 5 / GPIO 18 |
+| Circuito e firmware | [`../wokwi`](../wokwi/README.md) | `diagram.json` (ESP32, 3 LEDs, botão, HC-SR04), `src/main.cpp`, `include/config.h` |
+| Broker, regras e API | [`../node-red`](../node-red/README.md) | Aedes na porta 1883, função "Regras do semáforo", WebSocket `/ws/semaforo`, API `/api/...` |
+| Banco | [`../database`](../database/README.md) | SQLite: `schema.sql` (tabelas `veiculos`, `mudancas_sinal`, `pedidos_pedestre`, `alertas`, `leituras`, `comandos`) |
 
-`diagram.json` sugerido (em `semaforo-inteligente/`). No ESP32 DevKit C v4 os pinos se chamam `esp:25`, `esp:GND.1`
-etc. O `diagram.json` atual usa `esp:D5`/`esp:D18`, que são nomes da placa DevKit **V1**; confira ao montar.
+Tópicos MQTT (prefixo `fatec/semaforo/01`): `sensor/ultrassonico`, `sensor/botao`, `estado`, `status`
+(retido + Last Will) e `cmd/tempo_verde` (Node-RED → ESP32). Os mesmos nomes estão em
+[`config.ts`](src/services/telemetry/config.ts), em `../wokwi/include/config.h` e no fluxo do Node-RED.
 
-```json
-{
-  "version": 1,
-  "author": "Grupo Semáforo Inteligente",
-  "editor": "wokwi",
-  "parts": [
-    { "type": "board-esp32-devkit-c-v4", "id": "esp", "top": 0, "left": 0, "attrs": {} },
-    { "type": "wokwi-hc-sr04", "id": "sonar", "top": -120, "left": 220, "attrs": { "distance": "320" } },
-    { "type": "wokwi-led", "id": "ledR", "top": -40, "left": -160, "attrs": { "color": "red" } },
-    { "type": "wokwi-led", "id": "ledY", "top": -40, "left": -120, "attrs": { "color": "yellow" } },
-    { "type": "wokwi-led", "id": "ledG", "top": -40, "left": -80, "attrs": { "color": "green" } },
-    { "type": "wokwi-resistor", "id": "rR", "top": 60, "left": -170, "rotate": 90, "attrs": { "value": "220" } },
-    { "type": "wokwi-resistor", "id": "rY", "top": 60, "left": -130, "rotate": 90, "attrs": { "value": "220" } },
-    { "type": "wokwi-resistor", "id": "rG", "top": 60, "left": -90, "rotate": 90, "attrs": { "value": "220" } },
-    { "type": "wokwi-pushbutton", "id": "btn", "top": 160, "left": -160, "attrs": { "color": "blue", "label": "PEDESTRE" } }
-  ],
-  "connections": [
-    [ "esp:TX", "$serialMonitor:RX", "", [] ],
-    [ "esp:RX", "$serialMonitor:TX", "", [] ],
-    [ "ledR:A", "rR:1", "red", [] ],    [ "rR:2", "esp:25", "red", [] ],    [ "ledR:C", "esp:GND.1", "black", [] ],
-    [ "ledY:A", "rY:1", "gold", [] ],   [ "rY:2", "esp:26", "gold", [] ],   [ "ledY:C", "esp:GND.1", "black", [] ],
-    [ "ledG:A", "rG:1", "green", [] ],  [ "rG:2", "esp:27", "green", [] ],  [ "ledG:C", "esp:GND.1", "black", [] ],
-    [ "btn:1.l", "esp:14", "blue", [] ], [ "btn:2.l", "esp:GND.2", "black", [] ],
-    [ "sonar:VCC", "esp:5V", "red", [] ],
-    [ "sonar:GND", "esp:GND.3", "black", [] ],
-    [ "sonar:TRIG", "esp:5", "orange", [] ],
-    [ "sonar:ECHO", "esp:18", "purple", [] ]
-  ],
-  "dependencies": {}
-}
-```
-
-Para testar no Wokwi: clique no HC-SR04 e arraste a distância abaixo de 50 cm para "passar um carro".
-Clique no botão durante o verde para pedir a travessia.
-
-### 6.2 Firmware do ESP32 (PlatformIO)
-
-`platformio.ini`: adicione o ArduinoJson.
-
-```ini
-[env:esp32dev]
-platform = espressif32
-board = esp32dev
-framework = arduino
-monitor_speed = 115200
-lib_deps =
-    knolleary/PubSubClient
-    bblanchon/ArduinoJson@^7
-```
-
-`src/main.cpp`. O ciclo do semáforo roda **no ESP32**, assim o sinal continua funcionando se a rede cair. O Node-RED só
-ajusta o tempo de verde.
-
-```cpp
-#include <Arduino.h>
-#include <WiFi.h>
-#include <PubSubClient.h>
-#include <ArduinoJson.h>
-
-// ---------- Rede ----------
-const char* WIFI_SSID = "Wokwi-GUEST";      // rede do simulador Wokwi
-const char* WIFI_PASS = "";
-const char* MQTT_HOST = "broker.hivemq.com"; // broker público (ou o IP do seu Mosquitto)
-const uint16_t MQTT_PORT = 1883;
-const char* DEVICE_ID = "esp32-semaforo-01";
-
-// ---------- Tópicos (iguais a src/services/telemetry/config.ts) ----------
-#define TOPIC_BASE "fatec/semaforo/01"
-const char* T_ULTRA  = TOPIC_BASE "/sensor/ultrassonico";
-const char* T_BUTTON = TOPIC_BASE "/sensor/botao";
-const char* T_STATE  = TOPIC_BASE "/estado";
-const char* T_STATUS = TOPIC_BASE "/status";
-const char* T_CMD_GREEN = TOPIC_BASE "/cmd/tempo_verde";
-
-// ---------- Pinos (iguais ao diagram.json) ----------
-const int PIN_RED = 25, PIN_YELLOW = 26, PIN_GREEN = 27;
-const int PIN_BUTTON = 14;
-const int PIN_TRIG = 5, PIN_ECHO = 18;
-
-// ---------- Tempos ----------
-const int YELLOW_S = 3, RED_S = 8, RED_WITH_PEDESTRIAN_S = 10, PEDESTRIAN_CUT_S = 3;
-
-enum Light { GREEN, YELLOW, RED };
-Light light = GREEN;
-int greenDurationS = 12;
-int durationS = 12;
-int remainingS = 12;
-bool pedestrianRequest = false;
-
-WiFiClient wifiClient;
-PubSubClient mqtt(wifiClient);
-unsigned long lastSensorMs = 0, lastSecondMs = 0, lastStatusMs = 0, lastButtonMs = 0;
-bool lastButtonLevel = HIGH;
-
-const char* lightName(Light l) {
-  return l == GREEN ? "GREEN" : l == YELLOW ? "YELLOW" : "RED";
-}
-
-void applyLeds() {
-  digitalWrite(PIN_RED, light == RED);
-  digitalWrite(PIN_YELLOW, light == YELLOW);
-  digitalWrite(PIN_GREEN, light == GREEN);
-}
-
-void publishJson(const char* topic, JsonDocument& doc, bool retain = false) {
-  char buf[256];
-  size_t n = serializeJson(doc, buf);
-  mqtt.publish(topic, (const uint8_t*)buf, n, retain);
-}
-
-float readDistanceCm() {
-  digitalWrite(PIN_TRIG, LOW);
-  delayMicroseconds(2);
-  digitalWrite(PIN_TRIG, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(PIN_TRIG, LOW);
-  unsigned long us = pulseIn(PIN_ECHO, HIGH, 30000); // timeout ~5 m
-  return us == 0 ? 400.0 : us * 0.0343 / 2.0;
-}
-
-void publishStatus() {
-  JsonDocument doc;
-  doc["online"] = true;
-  doc["wifiRssi"] = WiFi.RSSI();
-  doc["uptimeS"] = millis() / 1000;
-  publishJson(T_STATUS, doc, true);
-}
-
-void publishState() {
-  JsonDocument doc;
-  doc["light"] = lightName(light);
-  doc["remainingS"] = remainingS;
-  doc["durationS"] = durationS;
-  doc["pedestrianRequest"] = pedestrianRequest;
-  publishJson(T_STATE, doc);
-}
-
-void nextLight() {
-  if (light == GREEN) {
-    light = YELLOW;
-    durationS = YELLOW_S;
-  } else if (light == YELLOW) {
-    light = RED;
-    durationS = pedestrianRequest ? RED_WITH_PEDESTRIAN_S : RED_S;
-    pedestrianRequest = false; // a travessia acontece neste vermelho
-  } else {
-    light = GREEN;
-    durationS = greenDurationS;
-  }
-  remainingS = durationS;
-  applyLeds();
-  Serial.printf("[SINAL] %s por %ds\n", lightName(light), durationS);
-}
-
-// Comando do Node-RED: {"durationS": 16}
-void onMqttMessage(char* topic, byte* payload, unsigned int length) {
-  if (strcmp(topic, T_CMD_GREEN) != 0) return;
-  JsonDocument doc;
-  if (deserializeJson(doc, payload, length)) return;
-  int s = doc["durationS"] | 0;
-  if (s >= 5 && s <= 60) {
-    greenDurationS = s;
-    Serial.printf("[CMD] tempo de verde = %ds\n", s);
-  }
-}
-
-void connectWifi() {
-  WiFi.begin(WIFI_SSID, WIFI_PASS);
-  Serial.print("[WIFI] conectando");
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(250);
-    Serial.print(".");
-  }
-  Serial.printf("\n[WIFI] ok, IP %s\n", WiFi.localIP().toString().c_str());
-}
-
-void connectMqtt() {
-  while (!mqtt.connected()) {
-    Serial.print("[MQTT] conectando... ");
-    // Last Will: se o ESP32 cair, o broker publica {"online":false} no status
-    if (mqtt.connect(DEVICE_ID, nullptr, nullptr, T_STATUS, 0, true, "{\"online\":false}")) {
-      Serial.println("ok");
-      mqtt.subscribe(T_CMD_GREEN);
-      publishStatus();
-    } else {
-      Serial.printf("falhou (%d), nova tentativa em 2s\n", mqtt.state());
-      delay(2000);
-    }
-  }
-}
-
-void setup() {
-  Serial.begin(115200);
-  pinMode(PIN_RED, OUTPUT);
-  pinMode(PIN_YELLOW, OUTPUT);
-  pinMode(PIN_GREEN, OUTPUT);
-  pinMode(PIN_BUTTON, INPUT_PULLUP);
-  pinMode(PIN_TRIG, OUTPUT);
-  pinMode(PIN_ECHO, INPUT);
-  applyLeds(); // o semáforo funciona mesmo antes da rede
-
-  connectWifi();
-  mqtt.setServer(MQTT_HOST, MQTT_PORT);
-  mqtt.setCallback(onMqttMessage);
-  connectMqtt();
-}
-
-void loop() {
-  if (WiFi.status() != WL_CONNECTED) connectWifi();
-  if (!mqtt.connected()) connectMqtt();
-  mqtt.loop();
-  unsigned long now = millis();
-
-  // Botão de pedestre (borda de descida, debounce de 50 ms)
-  bool level = digitalRead(PIN_BUTTON);
-  if (level == LOW && lastButtonLevel == HIGH && now - lastButtonMs > 50) {
-    lastButtonMs = now;
-    if (!pedestrianRequest && light != RED) {
-      pedestrianRequest = true;
-      if (light == GREEN && remainingS > PEDESTRIAN_CUT_S) remainingS = PEDESTRIAN_CUT_S;
-      JsonDocument doc;
-      doc["pressed"] = true;
-      publishJson(T_BUTTON, doc);
-      Serial.println("[BOTAO] pedestre pediu travessia");
-    }
-  }
-  lastButtonLevel = level;
-
-  // HC-SR04 a cada 500 ms
-  if (now - lastSensorMs >= 500) {
-    lastSensorMs = now;
-    JsonDocument doc;
-    doc["distanceCm"] = round(readDistanceCm() * 10) / 10.0;
-    publishJson(T_ULTRA, doc);
-  }
-
-  // Relógio do semáforo a cada 1 s
-  if (now - lastSecondMs >= 1000) {
-    lastSecondMs = now;
-    if (--remainingS <= 0) nextLight();
-    publishState();
-  }
-
-  // Status a cada 10 s
-  if (now - lastStatusMs >= 10000) {
-    lastStatusMs = now;
-    publishStatus();
-  }
-}
-```
-
-O que o Monitor Serial deve mostrar (evidência da Etapa 4): `[WIFI] ok`, `[MQTT] conectando... ok`,
-`[SINAL] GREEN por 12s`, `[BOTAO] pedestre pediu travessia`, `[CMD] tempo de verde = 16s`.
-
-> ⚠️ No broker público, qualquer pessoa pode publicar no mesmo tópico. Troque `fatec/semaforo/01` por algo único
-> do grupo (ex.: `fatec/semaforo/grupo3`) **no firmware, no Node-RED e em `config.ts`**.
-
-### 6.3 Tópicos MQTT
-
-| Função | Tópico | Quem publica | Mensagem de exemplo | Frequência |
-|---|---|---|---|---|
-| Distância do HC-SR04 | `fatec/semaforo/01/sensor/ultrassonico` | ESP32 | `{"distanceCm": 27.4}` | 500 ms |
-| Botão de pedestre | `fatec/semaforo/01/sensor/botao` | ESP32 | `{"pressed": true}` | ao apertar |
-| Estado do semáforo | `fatec/semaforo/01/estado` | ESP32 | `{"light":"GREEN","remainingS":9,"durationS":12,"pedestrianRequest":false}` | 1 s |
-| Status do ESP32 | `fatec/semaforo/01/status` | ESP32 (retido + Last Will) | `{"online":true,"wifiRssi":-58,"uptimeS":1234}` | 10 s e ao conectar |
-| Tempo de verde | `fatec/semaforo/01/cmd/tempo_verde` | Node-RED | `{"durationS": 16}` | quando o modo muda |
-
-Para conferir as mensagens: MQTT Explorer ou `mosquitto_sub -h broker.hivemq.com -t "fatec/semaforo/01/#" -v`.
-
-### 6.4 Fluxo do Node-RED
-
-```
-[mqtt in: fatec/semaforo/01/#] ──► [function: Regras do semáforo] ──saída 1──► [websocket out: /ws/semaforo] ──► dashboard
-                                                                  └─saída 2──► [mqtt out] ──► ESP32 (cmd/tempo_verde)
-                                                                  └─(debug)
-```
-
-1. **mqtt in**: servidor `broker.hivemq.com:1883` (o mesmo do firmware), tópico `fatec/semaforo/01/#`, QoS 0,
-   saída **"um objeto JSON analisado"**.
-2. **function "Regras do semáforo"**: em *Configuração*, **Saídas = 2**. Cole o código abaixo na aba *Ao receber mensagem*.
-3. **websocket out**: tipo **Listen on**, caminho `/ws/semaforo`. O dashboard conecta em `ws://<ip-do-node-red>:1880/ws/semaforo`.
-4. **mqtt out**: mesmo servidor e tópico em branco (o tópico vem em `msg.topic`).
-5. Um nó **debug** na saída 1 ajuda a tirar o print das mensagens (evidência da Etapa 6).
-
-Código do nó function (mesma lógica de [`nodeRedRules.ts`](src/services/telemetry/nodeRedRules.ts)):
-
-```js
-// Regras do semáforo — saída 1: dashboard (websocket out) · saída 2: comando ao ESP32 (mqtt out)
-const BASE = 'fatec/semaforo/01';
-const T = {
-  ultrasonic: `${BASE}/sensor/ultrassonico`,
-  button: `${BASE}/sensor/botao`,
-  state: `${BASE}/estado`,
-  status: `${BASE}/status`,
-  greenCmd: `${BASE}/cmd/tempo_verde`,
-};
-const DETECTION_CM = 50;       // abaixo disso há carro na faixa
-const TOO_CLOSE_CM = 20;       // carro avançando sobre a faixa
-const HEAVY_FLOW_PER_MIN = 8;  // fluxo intenso
-const GREEN_NORMAL_S = 12;
-const GREEN_EXTENDED_S = 16;
-const WEAK_SIGNAL_DBM = -80;
-
-const mem = context.get('mem') || {
-  distanceCm: 400, vehicleDetected: false, vehicleCount: 0, detections: [],
-  light: 'RED', remainingS: 0, durationS: 0, pedestrianRequest: false,
-  online: false, wifiRssi: -100, uptimeS: 0, greenCmdS: GREEN_NORMAL_S, hasState: false,
-};
-const now = Date.now();
-const p = (typeof msg.payload === 'object' && msg.payload) || {};
-
-switch (msg.topic) {
-  case T.ultrasonic: {
-    mem.distanceCm = Number(p.distanceCm ?? mem.distanceCm);
-    const detected = mem.distanceCm < DETECTION_CM;
-    if (detected && !mem.vehicleDetected) {   // borda de subida = carro novo
-      mem.vehicleCount += 1;
-      mem.detections.push(now);
-    }
-    mem.vehicleDetected = detected;
-    break;
-  }
-  case T.button:
-    if (p.pressed) mem.pedestrianRequest = true;
-    break;
-  case T.state:
-    mem.light = p.light ?? mem.light;
-    mem.remainingS = Number(p.remainingS ?? mem.remainingS);
-    mem.durationS = Number(p.durationS ?? mem.durationS);
-    mem.pedestrianRequest = Boolean(p.pedestrianRequest);
-    mem.online = true;
-    mem.hasState = true;
-    break;
-  case T.status:
-    mem.online = Boolean(p.online);
-    if (p.wifiRssi !== undefined) mem.wifiRssi = Number(p.wifiRssi);
-    if (p.uptimeS !== undefined) mem.uptimeS = Number(p.uptimeS);
-    break;
-  default:
-    return null; // ignora o próprio comando e outros tópicos
-}
-
-mem.detections = mem.detections.filter(t => now - t < 60000);
-const vehiclesPerMin = mem.detections.length;
-
-let mode = 'AUTOMATICO';
-if (!mem.online) mode = 'ATENCAO';
-else if (mem.pedestrianRequest) mode = 'PEDESTRE';
-else if (vehiclesPerMin >= HEAVY_FLOW_PER_MIN) mode = 'FLUXO_INTENSO';
-
-const alerts = [];
-if (!mem.online) alerts.push({ level: 'critical', code: 'DISPOSITIVO_OFFLINE', message: 'ESP32 sem comunicação com o broker MQTT' });
-if (mem.distanceCm < TOO_CLOSE_CM) alerts.push({ level: 'warning', code: 'VEICULO_PROXIMO', message: `Veículo sobre a faixa (${mem.distanceCm.toFixed(0)} cm)` });
-if (mode === 'FLUXO_INTENSO') alerts.push({ level: 'warning', code: 'FLUXO_INTENSO', message: `Fluxo intenso: verde estendido para ${GREEN_EXTENDED_S}s` });
-if (mem.pedestrianRequest) alerts.push({ level: 'info', code: 'PEDESTRE_AGUARDANDO', message: 'Pedestre aguardando travessia' });
-if (mem.online && mem.wifiRssi < WEAK_SIGNAL_DBM) alerts.push({ level: 'warning', code: 'SINAL_FRACO', message: `Wi-Fi fraco no ESP32 (${mem.wifiRssi} dBm)` });
-
-// Automação: ajusta o tempo de verde conforme o fluxo
-let command = null;
-const wantedGreen = mode === 'FLUXO_INTENSO' ? GREEN_EXTENDED_S : GREEN_NORMAL_S;
-if (mem.online && wantedGreen !== mem.greenCmdS) {
-  mem.greenCmdS = wantedGreen;
-  command = { topic: T.greenCmd, payload: { durationS: wantedGreen } };
-}
-
-context.set('mem', mem);
-if (!mem.hasState) return [null, command]; // ainda não sabemos o estado do sinal
-
-const telemetry = {
-  type: 'telemetry',
-  deviceId: 'esp32-semaforo-01',
-  timestamp: new Date(now).toISOString(),
-  light: { state: mem.light, remainingS: mem.remainingS, durationS: mem.durationS },
-  mode,
-  sensors: {
-    ultrasonicCm: Math.round(mem.distanceCm * 10) / 10,
-    vehicleDetected: mem.vehicleDetected,
-    pedestrianRequest: mem.pedestrianRequest,
-  },
-  flow: { vehicleCount: mem.vehicleCount, vehiclesPerMin },
-  actuators: { ledRed: mem.light === 'RED', ledYellow: mem.light === 'YELLOW', ledGreen: mem.light === 'GREEN' },
-  device: { online: mem.online, wifiRssi: mem.wifiRssi, uptimeS: mem.uptimeS },
-  alerts,
-};
-return [{ payload: telemetry }, command];
-```
-
-**Broker local (opcional):** com o Mosquitto instalado, use `mosquitto -v` e troque `MQTT_HOST` pelo IP da máquina.
-O Wokwi online não alcança `localhost`; nesse caso use o broker público ou o Wokwi no VS Code com o gateway privado.
-
-**Histórico em banco (opcional, Grafana/InfluxDB):** ligue um nó `influxdb out` na saída 1 gravando
-`ultrasonicCm`, `vehiclesPerMin` e `light.state`.
-
-### 6.5 Regras e alertas
-
-| Regra | Condição | Efeito |
-|---|---|---|
-| Contagem de carros | Distância cruza para < 50 cm | `vehicleCount + 1` e entra na janela de 1 min |
-| Fluxo intenso | ≥ 8 carros no último minuto | Modo `FLUXO_INTENSO`, alerta e comando `durationS: 16` ao ESP32 (volta a 12 quando normaliza) |
-| Prioridade do pedestre | Botão apertado no verde ou no amarelo | ESP32 corta o verde para 3 s e o vermelho seguinte dura 10 s. Modo `PEDESTRE` e alerta informativo |
-| Carro sobre a faixa | Distância < 20 cm | Alerta `VEICULO_PROXIMO` |
-| ESP32 offline | Last Will `{"online":false}` | Modo `ATENCAO`, alerta crítico e status OFF no dashboard |
-| Wi-Fi fraco | RSSI < −80 dBm | Alerta `SINAL_FRACO` |
-| Node-RED fora do ar | WebSocket fechado | Circuito `OFF` no dashboard, que reconecta sozinho |
+As regras do Node-RED (contagem por borda de subida abaixo de 50 cm, fluxo intenso com ≥ 8 carros/min,
+pedestre, carro sobre a faixa, ESP32 offline, Wi-Fi fraco) também existem em
+[`nodeRedRules.ts`](src/services/telemetry/nodeRedRules.ts), usado pela simulação do navegador.
+Se uma regra mudar, mude nos dois lugares.
 
 ---
 
@@ -602,8 +203,8 @@ O Wokwi online não alcança `localhost`; nesse caso use o broker público ou o 
 
 | # | Teste | Como provocar | Resultado esperado no dashboard |
 |---|---|---|---|
-| 1 | Fluxo completo | Wokwi rodando, Node-RED ativo, abrir `?fonte=ws` | Circuito `ON`, sinal do pórtico igual aos LEDs do Wokwi |
-| 2 | Contagem | Arrastar o HC-SR04 abaixo de 50 cm e voltar | Total de carros +1 e "Carro na faixa" enquanto estiver perto |
+| 1 | Fluxo completo | Wokwi rodando, Node-RED ativo, abrir `http://localhost:5173` | Circuito `ON`, sinal do pórtico igual aos LEDs do Wokwi |
+| 2 | Contagem | Arrastar o HC-SR04 abaixo de 50 cm e voltar | Total de carros +1, um carro para na faixa embaixo do sensor e segue viagem quando a distância volta a subir |
 | 3 | Fluxo intenso | Passar 8 carros em menos de 1 min | Modo `FLUXO INTENSO`, alerta, verde seguinte com 16 s |
 | 4 | Pedestre | Apertar o botão no verde | Contagem cai para 3 s, botão da calçada pisca, vermelho com 10 s |
 | 5 | Carro na faixa | Distância < 20 cm | Alerta "Veículo sobre a faixa" |
@@ -618,6 +219,7 @@ O Wokwi online não alcança `localhost`; nesse caso use o broker público ou o 
 frontend/
 ├── index.html
 ├── package.json
+├── .env.development              ← fonte de dados padrão (Node-RED local)
 ├── src/
 │   ├── main.tsx                      ← entrada React + fontes pixel art
 │   ├── index.css                     ← tokens de cor e fontes (identidade visual)
@@ -626,7 +228,8 @@ frontend/
 │   │   ├── config.ts                 ← tópicos MQTT, pinos do Wokwi, fonte de dados e URL do WebSocket
 │   │   ├── parseTelemetry.ts         ← validação das mensagens do Node-RED
 │   │   ├── websocketSource.ts        ← cliente WebSocket com reconexão
-│   │   ├── nodeRedRules.ts           ← regras do Node-RED (referência da seção 6.4)
+│   │   ├── historyApi.ts             ← histórico do banco pela API do Node-RED
+│   │   ├── nodeRedRules.ts           ← regras do Node-RED (usadas pela simulação)
 │   │   ├── simulatedWokwiSource.ts   ← ESP32 fictício (LEDs, botão, HC-SR04)
 │   │   └── index.ts                  ← escolhe a fonte conforme a config
 │   ├── hooks/
@@ -639,6 +242,7 @@ frontend/
 │   │   │   └── dashboard.css
 │   │   └── game/
 │   │       ├── GameScene.tsx         ← cenário 2D ligado à telemetria
+│   │       ├── Car.tsx               ← carros e HC-SR04 sincronizados com o sensor
 │   │       └── TrafficLight.tsx      ← pórtico com LEDs em PNG sobre as lâmpadas
 │   └── assets/game/                  ← sprites (personagem, rua, semáforo, LEDs)
 └── README.md

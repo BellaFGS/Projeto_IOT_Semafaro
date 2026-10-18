@@ -2,6 +2,7 @@ import React from 'react';
 import { useCharacterControl, useTrafficTelemetry } from '../../hooks';
 import { TrafficDashboard } from '../dashboard/TrafficDashboard';
 import { TrafficLight } from './TrafficLight';
+import { Car, CAR_WIDTH, SensorBeam, useCarsFromSensor } from './Car';
 
 import ruaImg from '../../assets/game/cenario/rua.png';
 
@@ -24,17 +25,25 @@ const playerSprites = [
 const GROUND_HEIGHT = '22%';
 /** Início da faixa de pedestres em rua.png (x 86 de 232), em % da largura da tela. */
 const CROSSWALK_LEFT = '37.07%';
+/** Faixa da pista onde os carros andam (bottom) e teto do carro parado. */
+const LANE_BOTTOM = '5%';
+const CAR_TOP = `calc(${LANE_BOTTOM} + 50px)`;
+/** HC-SR04 no poste do pórtico; o carro para com a frente logo antes da faixa. */
+const SENSOR_LEFT = `calc(${CROSSWALK_LEFT} - 30px)`;
+const CAR_STOP_LEFT = `calc(${CROSSWALK_LEFT} - ${CAR_WIDTH + 10}px)`;
 
 /**
- * Cenário 2D. O semáforo e o botão de pedestre só refletem a telemetria
- * recebida (simulação do Wokwi ou Node-RED); o personagem é o único elemento
- * controlado pelo usuário.
+ * Cenário 2D. O semáforo, o botão de pedestre, o HC-SR04 e os carros só refletem
+ * a telemetria recebida (Wokwi via Node-RED, ou a simulação); o personagem é o
+ * único elemento controlado pelo usuário.
  */
 export const GameScene: React.FC = () => {
   const { position, currentFrame, facing } = useCharacterControl();
   const feed = useTrafficTelemetry();
   const t = feed.telemetry;
   const pedestrianWaiting = t?.sensors.pedestrianRequest ?? false;
+  const vehicleDetected = t?.sensors.vehicleDetected ?? false;
+  const { cars, onArrivedOrGone } = useCarsFromSensor(vehicleDetected);
 
   return (
     <div style={{
@@ -45,6 +54,12 @@ export const GameScene: React.FC = () => {
       background: 'var(--px-sky)',
     }}>
       <TrafficDashboard feed={feed} />
+
+      <SensorBeam left={SENSOR_LEFT} ground={GROUND_HEIGHT} carTop={CAR_TOP} detected={vehicleDetected} />
+
+      {cars.map(car => (
+        <Car key={car.id} car={car} stopLeft={CAR_STOP_LEFT} bottom={LANE_BOTTOM} onArrivedOrGone={onArrivedOrGone} />
+      ))}
 
       {/* Pórtico: poste plantado na calçada, à esquerda da faixa; o semáforo fica sobre a faixa */}
       <div style={{
@@ -144,9 +159,8 @@ export const GameScene: React.FC = () => {
 
       <div className="px-panel" style={{
         position: 'absolute',
-        bottom: '12px',
-        left: '50%',
-        transform: 'translateX(-50%)',
+        bottom: `calc(${GROUND_HEIGHT} + 12px)`,
+        right: '16px',
         padding: '6px 14px',
         fontSize: '15px',
         color: 'var(--px-muted)',

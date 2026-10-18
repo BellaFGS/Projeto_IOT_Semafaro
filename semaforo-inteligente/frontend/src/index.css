@@ -72,3 +72,12 @@ html, body, #root {
 .px-blink {
   animation: px-blink 1s steps(1, end) infinite;
 }
+
+/* Sacolejo de 1 px do carro andando */
+@keyframes px-bounce {
+  50% { transform: translateY(-2px); }
+}
+
+.px-bounce {
+  animation: px-bounce 0.24s steps(1, end) infinite;
+}

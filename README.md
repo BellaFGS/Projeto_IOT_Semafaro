@@ -23,8 +23,8 @@ O projeto tem como objetivo:
 
 O projeto utiliza sensores e entradas para identificar a movimentação dos veículos:
 
-- 📡 **Sensor ultrassônico** para detecção de veículos;
-- 🔘 **Botões** para simulação de entradas e situações do sistema.
+- 📡 **Sensor ultrassônico HC-SR04** para detectar e contar os veículos na faixa;
+- 🔘 **Botão de pedestre** para pedir a travessia (encurta o tempo de espera).
 
 ## ⚙️ Atuadores e saídas
 
@@ -32,10 +32,9 @@ Os principais atuadores são:
 
 - 🔴 LED vermelho;
 - 🟡 LED amarelo;
-- 🟢 LED verde;
-- ⚙️ Servo motor.
+- 🟢 LED verde.
 
-Esses componentes representam os estados e mecanismos de controle do semáforo.
+Os LEDs representam o semáforo. O tempo de verde é ajustado automaticamente pelo Node-RED quando o fluxo de veículos fica intenso.
 
 ## 📊 Dashboard
 
@@ -62,4 +61,55 @@ As principais tecnologias previstas para o desenvolvimento são:
 - **Wokwi** - simulação dos componentes IoT;
 - **PlatformIO** - desenvolvimento e gerenciamento do firmware.
 
-> As tecnologias utilizadas podem sofrer alterações durante o desenvolvimento do projeto.
+- **SQLite** - banco de dados com o histórico de carros, sinais, pedestres e alertas;
+- **React + Vite** - dashboard gamificado em pixel art.
+
+## 🧭 Arquitetura
+
+```
+ Wokwi (VS Code)                Node-RED (localhost:1880)                 Dashboard (localhost:5173)
+┌──────────────────┐ MQTT :1883 ┌───────────────────────────────┐ WebSocket ┌───────────────────────┐
+│ ESP32            │ ─────────► │ Aedes (broker MQTT)           │ ────────► │ semáforo, carros,     │
+│  LEDs R/Y/G      │            │ Regras do semáforo            │           │ personagem, gráficos, │
+│  botão pedestre  │ ◄───────── │  (contagem, modos, alertas)   │ HTTP /api │ histórico e alertas   │
+│  HC-SR04         │ cmd/tempo  │ SQLite (database/semaforo.db) │ ────────► │                       │
+└──────────────────┘            └───────────────────────────────┘           └───────────────────────┘
+```
+
+O Wokwi e o dashboard mostram a mesma coisa: no Wokwi estão a placa e os componentes; o dashboard
+replica o estado em um cenário 2D. Quando o HC-SR04 detecta um carro (distância < 50 cm), um carro
+entra no cenário e para na faixa; quando a distância volta a subir, ele segue viagem.
+
+## 📁 Estrutura
+
+```
+semaforo-inteligente/
+├── semaforo.code-workspace   ← abra este arquivo no VS Code (pastas + tarefas prontas)
+├── wokwi/                    ← ESP32: diagram.json, firmware PlatformIO, wokwi.toml
+├── node-red/                 ← broker MQTT, fluxo (flows.json), API e ESP32 de teste
+├── database/                 ← schema.sql do SQLite (o .db é gerado pelo Node-RED)
+└── frontend/                 ← dashboard React
+docs/                         ← roteiro da atividade
+```
+
+## ▶️ Como rodar tudo
+
+Pré-requisitos: Node.js 22.9+, VS Code com as extensões **Wokwi Simulator** e **PlatformIO IDE**.
+
+1. Instale as dependências (uma vez), em `semaforo-inteligente/node-red` e em `semaforo-inteligente/frontend`:
+   ```bash
+   npm install
+   ```
+2. Abra `semaforo-inteligente/semaforo.code-workspace` no VS Code.
+3. `Terminal → Run Task → Subir Node-RED + Frontend`.
+4. `Terminal → Run Task → Firmware: compilar (PlatformIO)`.
+5. Abra `wokwi/diagram.json` e rode **Wokwi: Start Simulator** (F1).
+6. Abra http://localhost:5173. No Wokwi, mexa na distância do HC-SR04 e aperte o botão de pedestre.
+
+Sem o Wokwi: rode a tarefa **ESP32 de teste** (tecla `c` passa um carro, `p` aperta o botão).
+Sem back-end nenhum: http://localhost:5173/?fonte=simulacao usa o ESP32 fictício do navegador.
+
+Detalhes de cada parte: [wokwi](semaforo-inteligente/wokwi/README.md) ·
+[node-red](semaforo-inteligente/node-red/README.md) ·
+[database](semaforo-inteligente/database/README.md) ·
+[frontend](semaforo-inteligente/frontend/README.md).

@@ -1,5 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { createTelemetrySource, readTelemetryConfig, STALE_AFTER_MS } from '../services/telemetry';
+import {
+  createTelemetrySource,
+  fetchStoredEvents,
+  fetchStoredReadings,
+  readTelemetryConfig,
+  STALE_AFTER_MS,
+} from '../services/telemetry';
 import type {
   AlertLevel,
   ConnectionStatus,
@@ -76,6 +82,9 @@ export function useTrafficTelemetry(): TrafficTelemetryState {
         if (prev && prev.light.state !== next.light.state) {
           fresh.push({ at, level: 'info', message: `Sinal ${LIGHT_NAMES[next.light.state]} (${next.light.durationS}s)` });
         }
+        if (prev && next.flow.vehicleCount > prev.flow.vehicleCount) {
+          fresh.push({ at, level: 'info', message: `Carro contado (${next.sensors.ultrasonicCm.toFixed(0)} cm)` });
+        }
         const prevCodes = new Set(prev?.alerts.map(a => a.code));
         next.alerts
           .filter(a => !prevCodes.has(a.code))
@@ -90,6 +99,27 @@ export function useTrafficTelemetry(): TrafficTelemetryState {
       },
     });
     return stop;
+  }, [config]);
+
+  // Com dados reais, abre já com o histórico gravado no banco pelo Node-RED.
+  useEffect(() => {
+    if (config.source !== 'websocket') return;
+    let cancelled = false;
+    Promise.all([
+      fetchStoredEvents(config.httpUrl, EVENTS_SIZE),
+      fetchStoredReadings(config.httpUrl, HISTORY_SIZE),
+    ])
+      .then(([stored, readings]) => {
+        if (cancelled) return;
+        // ids negativos para não colidir com os eventos ao vivo
+        const seeded = stored.map((e, i) => ({ ...e, id: -(i + 1) }));
+        setEvents(list => [...list, ...seeded].slice(0, EVENTS_SIZE));
+        setHistory(h => [...readings, ...h].slice(-HISTORY_SIZE));
+      })
+      .catch(err => console.warn('[histórico] API do Node-RED indisponível:', err.message));
+    return () => {
+      cancelled = true;
+    };
   }, [config]);
 
   useEffect(() => {
