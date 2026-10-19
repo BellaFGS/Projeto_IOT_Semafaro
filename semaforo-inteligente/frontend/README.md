@@ -42,15 +42,18 @@ naquele instante. Passar no vermelho é infração (a "multa" da simulação).
   horizontal e a rua do meio indo para o fundo. Cobre a tela em 3:2, alinhado por baixo.
 - **Semáforo da imagem**: acende conforme o ESP32. A lâmpada acesa recebe o LED em PNG com brilho
   (`traffic-light/on/`) e as outras a luz apagada (`traffic-light/off/`). Ao lado, os segundos restantes.
-- **Botão de pedestre do poste**: é a única interação do usuário. **Clique nele** para pedir a
+- **Semáforo de pedestre**: no mesmo poste, logo abaixo. É o inverso dos carros (boneco verde só com os
+  carros no vermelho), calculado no dashboard como no ESP32; não passa pelo MQTT nem pelo Node-RED. A
+  lâmpada apagada recebe a mesma luz apagada de `traffic-light/off/`.
+- **Botão de pedestre do poste**: **clique nele** para pedir a
   travessia; o pedido vai ao ESP32 como se fosse o botão físico. No verde, o verde termina em até 3 s
   e o vermelho seguinte dura 10 s. Com o sinal já vermelho, o ESP32 ignora o pedido.
 - **HC-SR04**: preso no poste, com o feixe atravessando a rua do meio na faixa de pedestres. O feixe
   acende enquanto um carro passa. Quando o Node-RED confirma a passagem gravada, o sensor apita e
   mostra um balão: **"CARRO 2"**, ou **"MULTA! CARRO 2"** em vermelho se passou no vermelho.
 - **Carros** com placa **1, 2 e 3** (ver [seção 4](#4-sistema-dos-carros)).
-- **Pedestre**: só ambientação. Anda pela calçada e espera na beira da faixa até o sinal dos carros
-  ficar vermelho para atravessar. Por isso o clique no botão faz ele atravessar mais cedo.
+- **Pedestre**: controlado pelo usuário com **← →** (ou **A / D**) pela calçada da frente. Para
+  atravessar a rua do meio com segurança, peça a travessia no botão e espere o sinal dos carros fechar.
 
 O apito do site só toca depois do primeiro clique na página (regra dos navegadores).
 
@@ -61,11 +64,10 @@ O apito do site só toca depois do primeiro clique na página (regra dos navegad
 | **Semáforo** | Segundos restantes, modo (automático, pedestre, sem ESP32) e o tempo de cada LED publicado pelo ESP32 |
 | **Passagens** | Total de carros que passaram pelo sensor, carros/min e uma barra dividida por cor do sinal |
 | **Infrações** | Quantas passaram no vermelho, a porcentagem e a última multa (carro e horário) |
-| **Circuito Wokwi** | ESP32 ON/OFF, LEDs, botão, buzzer e Wi-Fi |
 | **Passagens recentes** | Últimas passagens do banco: horário, carro, sinal e MULTA |
 
 Na barra do título ficam os alertas do semáforo (ESP32 sem comunicação, pedestre aguardando, Wi-Fi
-fraco). Se os dados param de chegar por mais de 8 s, o card do circuito passa para `OFF`.
+fraco).
 
 ---
 
@@ -192,14 +194,14 @@ para o modo `?fonte=simulacao`. Se uma regra mudar no fluxo, mude lá também.
 
 | # | Teste | Como provocar | Resultado esperado |
 |---|---|---|---|
-| 1 | Semáforo sincronizado | Wokwi rodando, Node-RED ativo, abrir o dashboard | Circuito `ON`; o semáforo da imagem troca junto com os LEDs do Wokwi |
+| 1 | Semáforo sincronizado | Wokwi rodando, Node-RED ativo, abrir o dashboard | O semáforo da imagem troca junto com os LEDs do Wokwi |
 | 2 | Carros obedecem ao LED | Observar um vermelho | Carros param na linha da faixa e seguem no verde |
 | 3 | Passagem gravada | Carro cruza o sensor | Balão "CARRO n", apito, linha nova em Passagens recentes e no banco; buzzer do Wokwi apita 1 vez |
 | 4 | Infração | Esperar um carro furar o vermelho (1 a cada 4) | "MULTA! CARRO n", 3 apitos graves, card Infrações +1, `sinal = VERMELHO` no banco, 3 bips no Wokwi |
-| 5 | Botão de pedestre | Clicar no botão do poste com o sinal verde | Verde termina em até 3 s, vermelho de 10 s, botão pisca; o pedestre atravessa |
+| 5 | Botão de pedestre | Clicar no botão do poste com o sinal verde | Verde termina em até 3 s, vermelho de 10 s, botão pisca; o pedestre pode atravessar |
 | 6 | Sensor do Wokwi | HC-SR04 abaixo de 50 cm no simulador | Passagem com placa `WOKWI` no banco |
-| 7 | ESP32 cai | Parar a simulação do Wokwi | Após 8 s, circuito `OFF`; após ~25 s, alerta "ESP32 sem comunicação" |
-| 8 | Node-RED cai | Parar o Node-RED | Circuito `OFF`; ao religar, os dados voltam sozinhos |
+| 7 | ESP32 cai | Parar a simulação do Wokwi | Após 8 s, alerta "Dados atrasados"; após ~25 s, alerta "ESP32 sem comunicação" |
+| 8 | Node-RED cai | Parar o Node-RED | Alerta "Sem conexão com o Node-RED"; ao religar, os dados voltam sozinhos |
 
 ---
 
@@ -224,7 +226,7 @@ frontend/
 │   │   └── index.ts                 ← escolhe a fonte conforme a config
 │   ├── hooks/
 │   │   ├── useTrafficTelemetry.ts   ← estado do semáforo, passagens e comandos
-│   │   ├── usePedestrianWalker.ts   ← pedestre automático da calçada
+│   │   ├── usePedestrianControl.ts  ← pedestre da calçada, controlado no teclado
 │   │   └── useBeep.ts               ← apito do sensor (Web Audio)
 │   ├── components/
 │   │   ├── dashboard/               ← painel (cards, widgets, CSS)

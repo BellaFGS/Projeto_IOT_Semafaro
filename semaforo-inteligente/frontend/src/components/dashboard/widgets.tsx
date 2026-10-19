@@ -1,5 +1,4 @@
 import React from 'react';
-import type { LightState } from '../../types/traffic';
 
 /** Barra de progresso em blocos. */
 export const SegmentBar: React.FC<{ value: number; max: number; className: string; segments?: number }> = ({
@@ -18,29 +17,6 @@ export const SegmentBar: React.FC<{ value: number; max: number; className: strin
   );
 };
 
-/** Estado dos três LEDs (atuadores) do ESP32. */
-export const LedTrio: React.FC<{ red: boolean; yellow: boolean; green: boolean; compact?: boolean }> = ({
-  red,
-  yellow,
-  green,
-  compact = false,
-}) => {
-  const leds: [LightState, boolean, string][] = [
-    ['RED', red, 'R'],
-    ['YELLOW', yellow, 'Y'],
-    ['GREEN', green, 'G'],
-  ];
-  return (
-    <div className="px-leds">
-      {leds.map(([color, on, label]) => (
-        <span key={color} className={`px-led ${color}${on ? ' on' : ''}`} title={`LED ${label}`}>
-          <i />{!compact && ` LED ${label}`}
-        </span>
-      ))}
-    </div>
-  );
-};
-
 /** Barra única dividida pela quantidade de passagens em cada cor do sinal. */
 export const LightSplitBar: React.FC<{ green: number; yellow: number; red: number }> = ({ green, yellow, red }) => {
   const total = green + yellow + red;
@@ -50,18 +26,6 @@ export const LightSplitBar: React.FC<{ green: number; yellow: number; red: numbe
       {total === 0
         ? <span className="px-split-empty" />
         : parts.filter(([, n]) => n > 0).map(([cls, n]) => <span key={cls} className={cls} style={{ flexGrow: n }} />)}
-    </div>
-  );
-};
-
-/** Intensidade do Wi-Fi em quatro barras. */
-export const RssiBars: React.FC<{ dbm: number }> = ({ dbm }) => {
-  const bars = dbm >= -55 ? 4 : dbm >= -65 ? 3 : dbm >= -75 ? 2 : dbm >= -85 ? 1 : 0;
-  return (
-    <div className={`px-rssi${bars <= 1 ? ' weak' : ''}`} aria-label={`${dbm} dBm`}>
-      {[4, 7, 10, 14].map((h, i) => (
-        <span key={h} className={i < bars ? 'on' : undefined} style={{ height: h }} />
-      ))}
     </div>
   );
 };

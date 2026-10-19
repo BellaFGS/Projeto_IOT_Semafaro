@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { useBeep, usePedestrianWalker, useTrafficTelemetry } from '../../hooks';
+import { useBeep, usePedestrianControl, useTrafficTelemetry } from '../../hooks';
 import type { LightState } from '../../types/traffic';
 import { TrafficDashboard } from '../dashboard/TrafficDashboard';
 import { BackgroundTrafficLight } from './BackgroundTrafficLight';
@@ -40,7 +40,7 @@ const BUBBLE_MS = 1600;
  * Sistema 2 — carros: useTrafficSystem obedece a cor recebida; quando um carro cruza
  *   o sensor, o dashboard avisa o Node-RED, que grava a passagem (placa + sinal) no
  *   banco e devolve a confirmação — aí o sensor apita e mostra o balão (multa no vermelho).
- * O pedestre da calçada é só ambientação.
+ * O pedestre da calçada é controlado pelo usuário no teclado (← → ou A/D).
  */
 export const GameScene: React.FC = () => {
   const feed = useTrafficTelemetry();
@@ -50,7 +50,7 @@ export const GameScene: React.FC = () => {
   const pedestrianWaiting = t?.pedestrianRequest ?? false;
 
   const beep = useBeep();
-  const pedestrian = usePedestrianWalker(light);
+  const pedestrian = usePedestrianControl();
   const [bubble, setBubble] = useState<{ text: string; violation: boolean } | null>(null);
   const [buttonFlash, setButtonFlash] = useState(false);
 
@@ -127,7 +127,7 @@ export const GameScene: React.FC = () => {
         <UltrasonicSensor detected={sensorBusy} bubble={bubble?.text ?? null} violation={bubble?.violation ?? false} />
         <TrafficCars cars={cars} zFor={zFor} />
 
-        {/* Pedestre da calçada (ambientação) */}
+        {/* Pedestre da calçada, controlado no teclado */}
         <div
           style={{
             position: 'absolute',
@@ -170,7 +170,7 @@ export const GameScene: React.FC = () => {
         pointerEvents: 'none',
         whiteSpace: 'nowrap',
       }}>
-        Clique no <b style={{ color: 'var(--px-text)' }}>botão do poste</b> para o pedestre atravessar
+        <b style={{ color: 'var(--px-text)' }}>← →</b> movem o pedestre · clique no <b style={{ color: 'var(--px-text)' }}>botão do poste</b> para pedir a travessia
       </div>
     </div>
   );

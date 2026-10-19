@@ -2,6 +2,6 @@
  * Export centralizado dos hooks customizados.
  */
 
-export * from './usePedestrianWalker';
+export * from './usePedestrianControl';
 export * from './useTrafficTelemetry';
 export * from './useBeep';

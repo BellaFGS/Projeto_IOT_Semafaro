@@ -29,6 +29,9 @@
 #define PIN_LED_RED 25
 #define PIN_LED_YELLOW 26
 #define PIN_LED_GREEN 27
+// Semáforo de pedestre: inverso dos carros, só local (não vai ao MQTT)
+#define PIN_PED_RED 32
+#define PIN_PED_GREEN 33
 #define PIN_BUTTON 14
 #define PIN_TRIG 5
 #define PIN_ECHO 18

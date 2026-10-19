@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import type { TrafficTelemetryState } from '../../hooks';
-import { WOKWI_PINS } from '../../services/telemetry/config';
 import type { LightState, TrafficMode } from '../../types/traffic';
-import { LedTrio, LightSplitBar, RssiBars, SegmentBar } from './widgets';
+import { LightSplitBar, SegmentBar } from './widgets';
 import './dashboard.css';
 
 const LIGHT_LABEL: Record<LightState, string> = { RED: 'PARE', YELLOW: 'ATENÇÃO', GREEN: 'SIGA' };
@@ -24,7 +23,6 @@ const clock = (iso: string | number) => {
   const d = new Date(iso);
   return `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
 };
-const uptime = (s: number) => `${Math.floor(s / 3600)}h${pad2(Math.floor((s % 3600) / 60))}m`;
 
 /**
  * Mini dashboard somente leitura.
@@ -35,10 +33,13 @@ export const TrafficDashboard: React.FC<{ feed: TrafficTelemetryState }> = ({ fe
   const [open, setOpen] = useState(true);
   const { telemetry: t, status, remainingS, ageMs, stats, passages } = feed;
 
-  const deviceUp = status === 'online' && t?.device.online !== false;
   const light = t?.light.state;
   const dash = '--';
   const lastViolation = passages.find(p => p.violation);
+  /** Sem dados do Node-RED: avisa na barra de alertas (o card do semáforo continua com o último estado). */
+  const linkAlert = status === 'offline' ? 'Sem conexão com o Node-RED'
+    : status === 'stale' ? 'Dados atrasados (sem mensagens há mais de 8 s)'
+    : null;
   const violationPct = stats.total ? Math.round((stats.red / stats.total) * 100) : 0;
 
   return (
@@ -59,7 +60,9 @@ export const TrafficDashboard: React.FC<{ feed: TrafficTelemetryState }> = ({ fe
         {/* Alertas ativos do semáforo */}
         <div className="dash-alerts" aria-live="polite">
           <span className="px-title" style={{ fontSize: 11, color: 'var(--px-muted)' }}>ALERTAS</span>
-          {!t || t.alerts.length === 0 ? (
+          {linkAlert ? (
+            <span className="dash-alert"><i className="bg-RED" /> {linkAlert}</span>
+          ) : !t || t.alerts.length === 0 ? (
             <span className="dash-alert"><i className="bg-GREEN" /> {t ? 'Operação normal' : 'Aguardando o ESP32 (Wokwi)'}</span>
           ) : (
             t.alerts.map(a => (
@@ -122,37 +125,6 @@ export const TrafficDashboard: React.FC<{ feed: TrafficTelemetryState }> = ({ fe
               {lastViolation
                 ? <>Última: <span className="c-RED">carro {lastViolation.plate}</span> às {clock(lastViolation.at)}</>
                 : 'Nenhuma infração registrada'}
-            </div>
-          </article>
-
-          {/* Circuito no Wokwi, com os pinos do ESP32 */}
-          <article className="px-panel dash-card">
-            <h2>
-              CIRCUITO WOKWI
-              <span className={`dash-tag ${deviceUp ? 'bg-GREEN' : 'bg-RED'}`}>{deviceUp ? 'ON' : 'OFF'}</span>
-            </h2>
-            <div className="dash-pin">
-              <span>LEDs <em>{WOKWI_PINS.ledRed}/{WOKWI_PINS.ledYellow}/{WOKWI_PINS.ledGreen}</em></span>
-              <LedTrio
-                compact
-                red={t?.actuators.ledRed ?? false}
-                yellow={t?.actuators.ledYellow ?? false}
-                green={t?.actuators.ledGreen ?? false}
-              />
-            </div>
-            <div className="dash-pin">
-              <span>Botão <em>{WOKWI_PINS.button}</em></span>
-              <span className={`dash-tag ${t?.pedestrianRequest ? 'bg-info px-blink' : ''}`}>
-                {t?.pedestrianRequest ? 'PEDIDO' : 'SOLTO'}
-              </span>
-            </div>
-            <div className="dash-pin">
-              <span>Buzzer <em>{WOKWI_PINS.buzzer}</em></span>
-              <span className="c-cyan">{stats.total ? `${stats.total} bips` : dash}</span>
-            </div>
-            <div className="dash-pin">
-              <span>Wi-Fi <em>{t ? `${t.device.wifiRssi}dBm · ${uptime(t.device.uptimeS)}` : dash}</em></span>
-              {t && <RssiBars dbm={t.device.wifiRssi} />}
             </div>
           </article>
 

@@ -159,33 +159,6 @@
   background: var(--px-ink);
 }
 
-/* LEDs do ESP32 */
-.px-leds {
-  display: flex;
-  gap: 6px;
-}
-
-.px-led {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-family: var(--font-title);
-  font-size: 10px;
-  color: var(--px-dim);
-}
-
-.px-led i {
-  width: 10px;
-  height: 10px;
-  background: var(--px-ink);
-  border: 2px solid var(--px-line);
-}
-
-.px-led.on { color: var(--px-text); }
-.px-led.on.RED i { background: var(--px-red); border-color: var(--px-red); box-shadow: 0 0 0 2px rgba(255, 77, 94, 0.3); }
-.px-led.on.YELLOW i { background: var(--px-yellow); border-color: var(--px-yellow); box-shadow: 0 0 0 2px rgba(255, 194, 61, 0.3); }
-.px-led.on.GREEN i { background: var(--px-green); border-color: var(--px-green); box-shadow: 0 0 0 2px rgba(62, 232, 122, 0.3); }
-
 /* Gráficos */
 .px-chart {
   width: 100%;
@@ -194,22 +167,6 @@
   background: var(--px-ink);
   shape-rendering: crispEdges;
 }
-
-/* Barras de sinal Wi-Fi */
-.px-rssi {
-  display: flex;
-  align-items: flex-end;
-  gap: 2px;
-  height: 14px;
-}
-
-.px-rssi span {
-  width: 4px;
-  background: var(--px-ink);
-}
-
-.px-rssi span.on { background: var(--px-green); }
-.px-rssi.weak span.on { background: var(--px-yellow); }
 
 /* Alertas e eventos */
 /* Alertas ativos dentro da barra do título, ocupando o espaço livre */
@@ -269,23 +226,6 @@
   text-overflow: ellipsis;
 }
 
-
-/* Linha de componente do circuito: nome + pinos à esquerda, estado à direita */
-.dash-pin {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px;
-  font-size: 14px;
-}
-
-.dash-pin em {
-  font-style: normal;
-  font-family: var(--font-title);
-  font-size: 10px;
-  color: var(--px-dim);
-  margin-left: 4px;
-}
 
 /* Barra de passagens por cor do sinal */
 .px-split {

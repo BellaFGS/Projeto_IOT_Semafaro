@@ -80,8 +80,8 @@ Dois sistemas independentes, ligados pelo Node-RED:
 
 Os carros andam no dashboard e obedecem à cor que o ESP32 publica; de tempos em tempos um deles fura
 o vermelho. Cada carro que cruza o sensor vira uma linha no banco com a placa (1, 2 ou 3) e o sinal
-naquele instante. O pedestre da calçada é só ambientação; a única interação é clicar no botão de
-pedestre do poste, que vai ao ESP32 como o botão físico.
+naquele instante. O pedestre da calçada é controlado no teclado (← → ou A/D); o botão de pedestre do poste,
+clicado com o mouse, vai ao ESP32 como o botão físico.
 
 ## 📁 Estrutura
 
@@ -107,7 +107,7 @@ Pré-requisitos: Node.js 22.9+, VS Code com as extensões **Wokwi Simulator** e 
 3. `Terminal → Run Task → Subir Node-RED + Frontend`.
 4. `Terminal → Run Task → Firmware: compilar (PlatformIO)`.
 5. Abra `wokwi/diagram.json` e rode **Wokwi: Start Simulator** (F1).
-6. Abra http://localhost:5173. Os carros começam a passar sozinhos; clique no botão do poste para o pedestre.
+6. Abra http://localhost:5173. Os carros começam a passar sozinhos; mova o pedestre com ← → e clique no botão do poste para pedir a travessia.
 7. Para ver o banco: abra `semaforo-inteligente/database/semaforo.db` no **DB Browser for SQLite** (somente leitura).
 
 Sem o Wokwi: rode a tarefa **ESP32 de teste** (tecla `p` aperta o botão, `c` simula o HC-SR04).

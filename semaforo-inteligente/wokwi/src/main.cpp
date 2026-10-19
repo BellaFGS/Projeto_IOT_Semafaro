@@ -3,6 +3,8 @@
  *
  * Sistema 1 — SEMÁFORO (roda aqui, mesmo sem rede):
  *   - LEDs vermelho/amarelo/verde (GPIO 25/26/27) com o tempo de cada cor em config.h.
+ *   - Semáforo de pedestre (GPIO 32/33): verde só com os carros no vermelho. É
+ *     derivado da cor dos carros, então não é publicado (o dashboard calcula igual).
  *   - Botão de pedestre (GPIO 14) ou clique no botão do poste no dashboard
  *     (cmd/botao_virtual): no verde/amarelo, o verde termina em até 3 s e o
  *     vermelho seguinte dura 10 s para a travessia.
@@ -49,10 +51,14 @@ const char* lightNamePt(const char* en) {
   return "VERMELHO";
 }
 
+const uint8_t OUTPUT_PINS[] = {PIN_LED_RED, PIN_LED_YELLOW, PIN_LED_GREEN, PIN_PED_RED, PIN_PED_GREEN, PIN_TRIG, PIN_BUZZER};
+
 void applyLeds() {
   digitalWrite(PIN_LED_RED, light == RED);
   digitalWrite(PIN_LED_YELLOW, light == YELLOW);
   digitalWrite(PIN_LED_GREEN, light == GREEN);
+  digitalWrite(PIN_PED_RED, light != RED);
+  digitalWrite(PIN_PED_GREEN, light == RED);
 }
 
 void publishJson(const char* topic, JsonDocument& doc, bool retain = false) {
@@ -202,13 +208,9 @@ void handleSensor() {
 
 void setup() {
   Serial.begin(115200);
-  pinMode(PIN_LED_RED, OUTPUT);
-  pinMode(PIN_LED_YELLOW, OUTPUT);
-  pinMode(PIN_LED_GREEN, OUTPUT);
+  for (uint8_t pin : OUTPUT_PINS) pinMode(pin, OUTPUT);
   pinMode(PIN_BUTTON, INPUT_PULLUP);
-  pinMode(PIN_TRIG, OUTPUT);
   pinMode(PIN_ECHO, INPUT);
-  pinMode(PIN_BUZZER, OUTPUT);
   applyLeds();  // o semáforo funciona mesmo antes da rede
 
   Serial.println("================================");
