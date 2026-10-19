@@ -89,7 +89,7 @@
         "type": "debug",
         "z": "tab_semaforo",
         "name": "clientes do broker",
-        "active": false,
+        "active": true,
         "tosidebar": true,
         "console": false,
         "tostatus": false,
@@ -220,7 +220,8 @@
         "y": 320,
         "wires": [
             [
-                "n_sem"
+                "n_sem",
+                "n_sw_esp32"
             ]
         ]
     },
@@ -317,7 +318,8 @@
         "y": 480,
         "wires": [
             [
-                "n_btn_out"
+                "n_btn_out",
+                "n_debug_btn"
             ],
             [
                 "n_validate"
@@ -370,7 +372,7 @@
         "type": "debug",
         "z": "tab_semaforo",
         "name": "passagens recusadas",
-        "active": false,
+        "active": true,
         "tosidebar": true,
         "console": false,
         "tostatus": false,
@@ -459,8 +461,8 @@
         "type": "function",
         "z": "tab_semaforo",
         "name": "Avisar dashboard e ESP32",
-        "func": "// Guarda os totais em flow.transito e avisa as duas pontas\n// Saída 1 → dashboard (evento \"passagem\")   Saída 2 → ESP32 (buzzer + Serial)\nconst BASE = 'fatec/semaforo/01';\nconst EN = { VERDE: 'GREEN', AMARELO: 'YELLOW', VERMELHO: 'RED' };\nconst r = (msg.payload && msg.payload[0]) || {};\nconst last = r.ultimo_id ? {\n    id: r.ultimo_id,\n    at: r.ultimo_em,\n    plate: r.ultima_placa,\n    light: EN[r.ultimo_sinal],\n    violation: r.ultimo_sinal === 'VERMELHO',\n} : null;\nconst transito = {\n    total: r.total || 0, green: r.verde || 0, yellow: r.amarelo || 0, red: r.vermelho || 0,\n    perMin: r.por_min || 0, last,\n};\nflow.set('transito', transito);\nnode.status({ fill: 'blue', shape: 'dot', text: transito.total + ' passagens · ' + transito.red + ' infrações' });\n\nif (!msg.passagem || !last) return null; // carga inicial ao iniciar o Node-RED\nreturn [\n    { payload: { type: 'passagem', passage: last, stats: transito } },\n    { topic: BASE + '/cmd/passagem', payload: { placa: last.plate, sinal: last.light, infracao: last.violation } },\n];",
-        "outputs": 2,
+        "func": "// Guarda os totais em flow.transito e avisa as duas pontas\n// Saída 1 → dashboard (evento \"passagem\")   Saída 2 → ESP32 (buzzer + Serial)\n// Saída 3 → debug: a linha como ficou gravada na tabela passagens\nconst BASE = 'fatec/semaforo/01';\nconst EN = { VERDE: 'GREEN', AMARELO: 'YELLOW', VERMELHO: 'RED' };\nconst r = (msg.payload && msg.payload[0]) || {};\nconst last = r.ultimo_id ? {\n    id: r.ultimo_id,\n    at: r.ultimo_em,\n    plate: r.ultima_placa,\n    light: EN[r.ultimo_sinal],\n    violation: r.ultimo_sinal === 'VERMELHO',\n} : null;\nconst transito = {\n    total: r.total || 0, green: r.verde || 0, yellow: r.amarelo || 0, red: r.vermelho || 0,\n    perMin: r.por_min || 0, last,\n};\nflow.set('transito', transito);\nnode.status({ fill: 'blue', shape: 'dot', text: transito.total + ' passagens · ' + transito.red + ' infrações' });\n\nif (!msg.passagem || !last) return null; // carga inicial ao iniciar o Node-RED\nreturn [\n    { payload: { type: 'passagem', passage: last, stats: transito } },\n    { topic: BASE + '/cmd/passagem', payload: { placa: last.plate, sinal: last.light, infracao: last.violation } },\n    { topic: 'passagens', payload: { id: r.ultimo_id, registrado_em: r.ultimo_em, placa: r.ultima_placa, sinal: r.ultimo_sinal } },\n];",
+        "outputs": 3,
         "timeout": 0,
         "noerr": 0,
         "initialize": "",
@@ -470,11 +472,13 @@
         "y": 600,
         "wires": [
             [
-                "n_ws_out2",
-                "n_debug_pass"
+                "n_ws_out2"
             ],
             [
                 "n_pass_out"
+            ],
+            [
+                "n_debug_pass"
             ]
         ]
     },
@@ -511,8 +515,8 @@
         "id": "n_debug_pass",
         "type": "debug",
         "z": "tab_semaforo",
-        "name": "passagens",
-        "active": false,
+        "name": "banco: passagem gravada",
+        "active": true,
         "tosidebar": true,
         "console": false,
         "tostatus": false,
@@ -807,6 +811,135 @@
         "headers": {},
         "x": 490,
         "y": 1000,
+        "wires": []
+    },
+    {
+        "id": "n_sw_esp32",
+        "type": "switch",
+        "z": "tab_semaforo",
+        "name": "Separar por sensor",
+        "property": "topic",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "cont",
+                "v": "/sensor/",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "fatec/semaforo/01/estado",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "fatec/semaforo/01/status",
+                "vt": "str"
+            }
+        ],
+        "checkall": "false",
+        "repair": false,
+        "outputs": 3,
+        "x": 900,
+        "y": 320,
+        "wires": [
+            [
+                "n_debug_sensores"
+            ],
+            [
+                "n_rbe_luz"
+            ],
+            [
+                "n_debug_status"
+            ]
+        ]
+    },
+    {
+        "id": "n_debug_sensores",
+        "type": "debug",
+        "z": "tab_semaforo",
+        "name": "ESP32: botão e HC-SR04",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1170,
+        "y": 280,
+        "wires": []
+    },
+    {
+        "id": "n_rbe_luz",
+        "type": "rbe",
+        "z": "tab_semaforo",
+        "name": "só quando a cor muda",
+        "func": "rbe",
+        "gap": "",
+        "start": "",
+        "inout": "out",
+        "septopics": false,
+        "property": "payload.light",
+        "topi": "topic",
+        "x": 1150,
+        "y": 320,
+        "wires": [
+            [
+                "n_debug_leds"
+            ]
+        ]
+    },
+    {
+        "id": "n_debug_leds",
+        "type": "debug",
+        "z": "tab_semaforo",
+        "name": "ESP32: LEDs (cor e tempos)",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1400,
+        "y": 320,
+        "wires": []
+    },
+    {
+        "id": "n_debug_status",
+        "type": "debug",
+        "z": "tab_semaforo",
+        "name": "ESP32: status (online, Wi-Fi)",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1180,
+        "y": 360,
+        "wires": []
+    },
+    {
+        "id": "n_debug_btn",
+        "type": "debug",
+        "z": "tab_semaforo",
+        "name": "dashboard: botão de pedestre",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 880,
+        "y": 460,
         "wires": []
     }
 ]
