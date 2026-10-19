@@ -27,6 +27,12 @@ export const LAMP = {
 /** Visor com os segundos, ao lado da caixa do semáforo (caixa termina em x 1236). */
 export const TIMER = { left: px(1252), top: py(858) } as const;
 
+/**
+ * Semáforo de pedestre no mesmo poste, entre a caixa dos carros (termina em y ≈ 1065)
+ * e o botão (y 1386): 96 px de largura, proporção da imagem (160×284).
+ */
+export const PED_LIGHT = { left: px(1122), top: py(1140), width: px(96) } as const;
+
 /** Caixa do botão de pedestre no mesmo poste (x 1153–1173, y 1390–1444). */
 export const PED_BUTTON = { left: px(1149), top: py(1386), width: px(28), height: py(62) } as const;
 

@@ -8,6 +8,7 @@ pontas do projeto: aqui roda o **semáforo**; a outra ponta é o dashboard, onde
 | Componente | Função | Pino ESP32 |
 |---|---|---|
 | LED vermelho / amarelo / verde (+ 220 Ω) | Semáforo: verde 12 s → amarelo 3 s → vermelho 8 s | GPIO 25 / 26 / 27 |
+| LED pedestre vermelho / verde (+ 220 Ω) | Semáforo de pedestre: verde só com os carros no vermelho. Calculado no próprio ESP32, não é publicado no MQTT | GPIO 32 / 33 |
 | Botão de pedestre (azul) | Pede travessia: o verde termina em até 3 s e o vermelho seguinte dura 10 s | GPIO 14 (`INPUT_PULLUP`) e GND |
 | HC-SR04 (ultrassônico) | Sensor dos carros: arrastar a distância abaixo de 50 cm registra um carro com placa `WOKWI` | TRIG 5 / ECHO 18, VCC 5V, GND |
 | Buzzer | Apita a cada carro gravado no banco: 1 bip (verde/amarelo), 3 bips (vermelho = infração) | GPIO 13 e GND |
@@ -19,7 +20,7 @@ Os tempos de cada LED ficam em `include/config.h` (`GREEN_S`, `YELLOW_S`, `RED_S
 
 | Arquivo | O que é |
 |---|---|
-| `diagram.json` | Circuito do Wokwi (ESP32 DevKit C v4, 3 LEDs, botão, HC-SR04, buzzer) |
+| `diagram.json` | Circuito do Wokwi (ESP32 DevKit C v4, 3 LEDs dos carros, 2 do pedestre, botão, HC-SR04, buzzer) |
 | `wokwi.toml` | Aponta o Wokwi para o firmware compilado em `.pio/build/esp32dev/` |
 | `platformio.ini` | Projeto PlatformIO (PubSubClient + ArduinoJson) |
 | `include/config.h` | Wi-Fi, broker MQTT, tópicos, pinos e tempo de cada LED |

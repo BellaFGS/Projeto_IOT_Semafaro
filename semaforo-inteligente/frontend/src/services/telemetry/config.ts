@@ -17,17 +17,6 @@ export const MQTT_TOPICS = {
   passageCmd: `${MQTT_BASE}/cmd/passagem`,
 } as const;
 
-/** Ligações do circuito no Wokwi (diagram.json). */
-export const WOKWI_PINS = {
-  ledRed: 25,
-  ledYellow: 26,
-  ledGreen: 27,
-  button: 14,
-  ultrasonicTrig: 5,
-  ultrasonicEcho: 18,
-  buzzer: 13,
-} as const;
-
 export const DEFAULT_WS_URL = 'ws://localhost:1880/ws/semaforo';
 /** API HTTP do Node-RED (histórico gravado no SQLite). */
 export const DEFAULT_HTTP_URL = 'http://localhost:1880';
