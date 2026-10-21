@@ -12,10 +12,10 @@
 
 ## Artes originais
 
-Os arquivos em alta resolução gerados para o projeto ficam em `docs/arte/` na raiz do repositório.
+Os arquivos em alta resolução gerados para o projeto ficam em `frontend/arte/`, fora do `src` para não entrarem no build.
 Aqui entram só as versões otimizadas para o navegador:
 
-| Original (`docs/arte/`) | Versão usada | Como foi gerada |
+| Original (`frontend/arte/`) | Versão usada | Como foi gerada |
 |---|---|---|
 | `rua-melhorada-original.png` (8 MB) | `backgrounds/rua-melhorada.webp` (0,9 MB) | WebP qualidade 90, mesmo tamanho |
 | `semaforo-*-off-original.png` (~420 KB) | `traffic-light/off/*.png` (~6 KB) | margem transparente cortada e reduzida para 96×96 |
