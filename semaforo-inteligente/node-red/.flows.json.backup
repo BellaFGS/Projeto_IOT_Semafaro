@@ -1,0 +1,945 @@
+[
+    {
+        "id": "tab_semaforo",
+        "type": "tab",
+        "label": "Semáforo Inteligente",
+        "disabled": false,
+        "info": "Dois sistemas: (1) semáforo Wokwi → MQTT → dashboard; (2) carros do dashboard → passagem → SQLite → dashboard e ESP32."
+    },
+    {
+        "id": "cfg_broker",
+        "type": "mqtt-broker",
+        "name": "Aedes local",
+        "broker": "localhost",
+        "port": "1883",
+        "clientid": "node-red-semaforo",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": "4",
+        "keepalive": "60",
+        "cleansession": true,
+        "autoUnsubscribe": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthRetain": "false",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closeRetain": "false",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willRetain": "false",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    },
+    {
+        "id": "cfg_sqlite",
+        "type": "sqlitedb",
+        "db": "${SEMAFORO_DB}",
+        "mode": "RWC"
+    },
+    {
+        "id": "cfg_ws",
+        "type": "websocket-listener",
+        "path": "/ws/semaforo",
+        "wholemsg": "false"
+    },
+    {
+        "id": "c_broker",
+        "type": "comment",
+        "z": "tab_semaforo",
+        "name": "1. Broker MQTT (Aedes) na porta 1883",
+        "info": "O ESP32 do Wokwi conecta em host.wokwi.internal:1883.",
+        "x": 170,
+        "y": 40,
+        "wires": []
+    },
+    {
+        "id": "n_aedes",
+        "type": "aedes broker",
+        "z": "tab_semaforo",
+        "name": "Broker MQTT :1883",
+        "mqtt_port": 1883,
+        "mqtt_ws_bind": "port",
+        "mqtt_ws_port": "",
+        "mqtt_ws_path": "",
+        "cert": "",
+        "key": "",
+        "certname": "",
+        "keyname": "",
+        "persistence_bind": "memory",
+        "dburl": "",
+        "usetls": false,
+        "x": 170,
+        "y": 80,
+        "wires": [
+            [
+                "n_debug_broker"
+            ],
+            []
+        ]
+    },
+    {
+        "id": "n_debug_broker",
+        "type": "debug",
+        "z": "tab_semaforo",
+        "name": "clientes do broker",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 400,
+        "y": 80,
+        "wires": []
+    },
+    {
+        "id": "c_db",
+        "type": "comment",
+        "z": "tab_semaforo",
+        "name": "2. Banco SQLite: cria a tabela de passagens e carrega os totais",
+        "info": "Executa database/schema.sql (idempotente) ao iniciar.",
+        "x": 250,
+        "y": 140,
+        "wires": []
+    },
+    {
+        "id": "n_start",
+        "type": "inject",
+        "z": "tab_semaforo",
+        "name": "Ao iniciar",
+        "props": [],
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": "0.5",
+        "topic": "",
+        "x": 130,
+        "y": 180,
+        "wires": [
+            [
+                "n_schema_file"
+            ]
+        ]
+    },
+    {
+        "id": "n_schema_file",
+        "type": "file in",
+        "z": "tab_semaforo",
+        "name": "Ler schema.sql",
+        "filename": "SEMAFORO_SCHEMA",
+        "filenameType": "env",
+        "format": "utf8",
+        "chunk": false,
+        "sendError": false,
+        "encoding": "utf8",
+        "allProps": false,
+        "x": 310,
+        "y": 180,
+        "wires": [
+            [
+                "n_schema_topic"
+            ]
+        ]
+    },
+    {
+        "id": "n_schema_topic",
+        "type": "change",
+        "z": "tab_semaforo",
+        "name": "SQL em msg.topic",
+        "rules": [
+            {
+                "t": "move",
+                "p": "payload",
+                "pt": "msg",
+                "to": "topic",
+                "tot": "msg"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 500,
+        "y": 180,
+        "wires": [
+            [
+                "n_schema_exec"
+            ]
+        ]
+    },
+    {
+        "id": "n_schema_exec",
+        "type": "sqlite",
+        "z": "tab_semaforo",
+        "mydb": "cfg_sqlite",
+        "sqlquery": "batch",
+        "sql": "",
+        "name": "Criar tabelas",
+        "x": 690,
+        "y": 180,
+        "wires": [
+            [
+                "n_stats_q"
+            ]
+        ]
+    },
+    {
+        "id": "c_sem",
+        "type": "comment",
+        "z": "tab_semaforo",
+        "name": "3. SEMÁFORO (Wokwi → dashboard): LEDs, tempos, botão e status do ESP32",
+        "info": "",
+        "x": 290,
+        "y": 260,
+        "wires": []
+    },
+    {
+        "id": "n_mqtt_in",
+        "type": "mqtt in",
+        "z": "tab_semaforo",
+        "name": "ESP32",
+        "topic": "fatec/semaforo/01/#",
+        "qos": "0",
+        "datatype": "json",
+        "broker": "cfg_broker",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 110,
+        "y": 320,
+        "wires": [
+            [
+                "n_sem",
+                "n_sw_esp32"
+            ]
+        ]
+    },
+    {
+        "id": "n_sem",
+        "type": "function",
+        "z": "tab_semaforo",
+        "name": "Estado do semáforo",
+        "func": "// Estado do semáforo (sistema 1: Wokwi → dashboard)\n// Recebe o ESP32 por MQTT, guarda o estado em flow.semaforo e monta a telemetria.\n// Saída 1 → dashboard (websocket /ws/semaforo)\n// Saída 2 → passagem detectada pelo HC-SR04 do próprio Wokwi (slider do sensor)\nconst BASE = 'fatec/semaforo/01';\nconst T = {\n    state: BASE + '/estado',\n    status: BASE + '/status',\n    button: BASE + '/sensor/botao',\n    vehicle: BASE + '/sensor/veiculo',\n};\nconst WEAK_SIGNAL_DBM = -80;\n\nconst s = flow.get('semaforo') || {\n    light: 'RED', remainingS: 0, durationS: 0, pedestrianRequest: false, times: null,\n    online: false, wifiRssi: -100, uptimeS: 0, hasState: false,\n};\nconst p = (typeof msg.payload === 'object' && msg.payload) || {};\nlet passage = null;\n\nswitch (msg.topic) {\n    case T.state:\n        s.light = p.light ?? s.light;\n        s.remainingS = Number(p.remainingS ?? s.remainingS);\n        s.durationS = Number(p.durationS ?? s.durationS);\n        s.pedestrianRequest = Boolean(p.pedestrianRequest);\n        if (p.tempos) s.times = p.tempos;\n        s.online = true;\n        s.hasState = true;\n        break;\n    case T.status:\n        s.online = Boolean(p.online);\n        if (p.wifiRssi !== undefined) s.wifiRssi = Number(p.wifiRssi);\n        if (p.uptimeS !== undefined) s.uptimeS = Number(p.uptimeS);\n        break;\n    case T.button:\n        if (p.pressed) s.pedestrianRequest = true;\n        break;\n    case T.vehicle:\n        // Carro \"passado\" no slider do HC-SR04 dentro do Wokwi\n        passage = { payload: { placa: 'WOKWI', sinal: s.light, origem: 'wokwi' } };\n        break;\n    default:\n        return null; // comandos (cmd/...) e outros tópicos\n}\nflow.set('semaforo', s);\n\nlet mode = 'AUTOMATICO';\nif (!s.online) mode = 'ATENCAO';\nelse if (s.pedestrianRequest) mode = 'PEDESTRE';\n\nconst alerts = [];\nif (!s.online) alerts.push({ level: 'critical', code: 'DISPOSITIVO_OFFLINE', message: 'ESP32 sem comunicação com o broker MQTT' });\nif (s.pedestrianRequest) alerts.push({ level: 'info', code: 'PEDESTRE_AGUARDANDO', message: 'Pedestre aguardando travessia' });\nif (s.online && s.wifiRssi < WEAK_SIGNAL_DBM) alerts.push({ level: 'warning', code: 'SINAL_FRACO', message: 'Wi-Fi fraco no ESP32 (' + s.wifiRssi + ' dBm)' });\n\nnode.status({ fill: s.online ? 'green' : 'red', shape: 'dot', text: s.light + ' ' + s.remainingS + 's · ' + mode });\nif (!s.hasState) return [null, passage];\n\nconst transito = flow.get('transito') || { total: 0, green: 0, yellow: 0, red: 0, perMin: 0, last: null };\nconst telemetry = {\n    type: 'telemetry',\n    deviceId: 'esp32-semaforo-01',\n    timestamp: new Date().toISOString(),\n    light: { state: s.light, remainingS: s.remainingS, durationS: s.durationS },\n    times: s.times,\n    mode,\n    pedestrianRequest: s.pedestrianRequest,\n    actuators: { ledRed: s.light === 'RED', ledYellow: s.light === 'YELLOW', ledGreen: s.light === 'GREEN' },\n    device: { online: s.online, wifiRssi: s.wifiRssi, uptimeS: s.uptimeS },\n    alerts,\n    passages: { total: transito.total, green: transito.green, yellow: transito.yellow, red: transito.red, perMin: transito.perMin },\n    lastPassage: transito.last,\n};\nreturn [{ payload: telemetry }, passage];",
+        "outputs": 2,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 320,
+        "y": 320,
+        "wires": [
+            [
+                "n_ws_out",
+                "n_debug_tel"
+            ],
+            [
+                "n_validate"
+            ]
+        ]
+    },
+    {
+        "id": "n_ws_out",
+        "type": "websocket out",
+        "z": "tab_semaforo",
+        "name": "Dashboard /ws/semaforo",
+        "server": "cfg_ws",
+        "client": "",
+        "x": 620,
+        "y": 300,
+        "wires": []
+    },
+    {
+        "id": "n_debug_tel",
+        "type": "debug",
+        "z": "tab_semaforo",
+        "name": "telemetria",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 580,
+        "y": 340,
+        "wires": []
+    },
+    {
+        "id": "c_car",
+        "type": "comment",
+        "z": "tab_semaforo",
+        "name": "4. CARROS (dashboard → Node-RED valida → banco): carro que passou pelo sensor e o sinal no momento",
+        "info": "Caminho inverso: o minigame avisa a passagem, o Node-RED grava com o sinal oficial do ESP32 e avisa o dashboard e o Wokwi.",
+        "x": 340,
+        "y": 420,
+        "wires": []
+    },
+    {
+        "id": "n_ws_in",
+        "type": "websocket in",
+        "z": "tab_semaforo",
+        "name": "Dashboard /ws/semaforo",
+        "server": "cfg_ws",
+        "client": "",
+        "x": 150,
+        "y": 480,
+        "wires": [
+            [
+                "n_cmd"
+            ]
+        ]
+    },
+    {
+        "id": "n_cmd",
+        "type": "function",
+        "z": "tab_semaforo",
+        "name": "Comandos do dashboard",
+        "func": "// Comandos do dashboard (o que chega pelo WebSocket /ws/semaforo)\n//   {\"type\":\"botao_virtual\"}                                clique no botão de pedestre do poste\n//   {\"type\":\"passagem\",\"placa\":\"2\",\"sinal\":\"RED\"}           carro do minigame passou pelo sensor\n// Saída 1 → MQTT para o ESP32 (botão)   Saída 2 → registrar passagem no banco\nconst BASE = 'fatec/semaforo/01';\nlet cmd;\ntry {\n    cmd = typeof msg.payload === 'string' ? JSON.parse(msg.payload) : msg.payload;\n} catch (e) {\n    return null;\n}\nif (!cmd || typeof cmd !== 'object') return null;\n\nif (cmd.type === 'botao_virtual') {\n    node.status({ fill: 'blue', shape: 'ring', text: 'botão de pedestre (' + new Date().toLocaleTimeString('pt-BR') + ')' });\n    return [{ topic: BASE + '/cmd/botao_virtual', payload: { pressed: true } }, null];\n}\nif (cmd.type === 'passagem') {\n    const placa = String(cmd.placa || '').trim().slice(0, 12) || '?';\n    node.status({ fill: 'yellow', shape: 'dot', text: 'carro ' + placa + ' no sensor' });\n    return [null, { payload: { placa, sinal: cmd.sinal, origem: 'dashboard' } }];\n}\nreturn null;",
+        "outputs": 2,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 380,
+        "y": 480,
+        "wires": [
+            [
+                "n_btn_out",
+                "n_debug_btn"
+            ],
+            [
+                "n_validate"
+            ]
+        ]
+    },
+    {
+        "id": "n_btn_out",
+        "type": "mqtt out",
+        "z": "tab_semaforo",
+        "name": "Botão → ESP32",
+        "topic": "",
+        "qos": "0",
+        "retain": "false",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "cfg_broker",
+        "x": 620,
+        "y": 460,
+        "wires": []
+    },
+    {
+        "id": "n_validate",
+        "type": "function",
+        "z": "tab_semaforo",
+        "name": "Validar passagem",
+        "func": "// Validar passagem (antes de gravar no banco)\n// Entrada: { placa, sinal (o que o dashboard via), origem }\n// Saída 1 → passagem válida, já com o sinal OFICIAL do ESP32\n// Saída 2 → passagem recusada, com o motivo (vai para o debug)\nconst PLACAS = ['1', '2', '3', 'WOKWI'];\nconst JANELA_DUPLICADA_MS = 3000;\nconst p = msg.payload || {};\nconst placa = String(p.placa || '').trim().toUpperCase();\nconst recusar = motivo => {\n    node.status({ fill: 'red', shape: 'ring', text: 'recusada: ' + motivo });\n    return [null, { payload: { placa, motivo, recebido: p } }];\n};\n\n// 1. Placa conhecida\nif (!PLACAS.includes(placa)) return recusar('placa inválida');\n\n// 2. Verificação com o semáforo: o ESP32 precisa estar online e com estado conhecido\nconst s = flow.get('semaforo');\nif (!s || !s.hasState) return recusar('semáforo sem estado (Wokwi não iniciado)');\nif (!s.online) return recusar('ESP32 offline');\n\n// 3. Mesma placa em menos de 3 s = leitura duplicada do sensor\nconst ultimas = context.get('ultimas') || {};\nconst agora = Date.now();\nif (ultimas[placa] && agora - ultimas[placa] < JANELA_DUPLICADA_MS) return recusar('duplicada');\nultimas[placa] = agora;\ncontext.set('ultimas', ultimas);\n\n// Sinal oficial = último estado publicado pelo ESP32 (não o que o dashboard mandou)\nconst divergente = p.sinal && p.sinal !== s.light;\nnode.status({ fill: 'green', shape: 'dot', text: 'ok: carro ' + placa + ' no ' + s.light + (divergente ? ' (dashboard viu ' + p.sinal + ')' : '') });\nreturn [{ payload: { placa, light: s.light, origem: p.origem || 'dashboard' } }, null];",
+        "outputs": 2,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 620,
+        "y": 520,
+        "wires": [
+            [
+                "n_register"
+            ],
+            [
+                "n_debug_rej"
+            ]
+        ]
+    },
+    {
+        "id": "n_debug_rej",
+        "type": "debug",
+        "z": "tab_semaforo",
+        "name": "passagens recusadas",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 840,
+        "y": 580,
+        "wires": []
+    },
+    {
+        "id": "n_register",
+        "type": "function",
+        "z": "tab_semaforo",
+        "name": "Registrar passagem",
+        "func": "// Registrar passagem: monta o INSERT com os dados já validados\nconst PT = { GREEN: 'VERDE', YELLOW: 'AMARELO', RED: 'VERMELHO' };\nconst ts = new Date().toISOString();\nmsg.passagem = { placa: msg.payload.placa, light: msg.payload.light, origem: msg.payload.origem };\nmsg.topic = 'INSERT INTO passagens (registrado_em, placa, sinal) VALUES ($1, $2, $3)';\nmsg.payload = [ts, msg.payload.placa, PT[msg.payload.light]];\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 830,
+        "y": 520,
+        "wires": [
+            [
+                "n_insert"
+            ]
+        ]
+    },
+    {
+        "id": "n_insert",
+        "type": "sqlite",
+        "z": "tab_semaforo",
+        "mydb": "cfg_sqlite",
+        "sqlquery": "msg.topic",
+        "sql": "",
+        "name": "Gravar no banco",
+        "x": 1030,
+        "y": 520,
+        "wires": [
+            [
+                "n_stats_q"
+            ]
+        ]
+    },
+    {
+        "id": "n_stats_q",
+        "type": "function",
+        "z": "tab_semaforo",
+        "name": "Consultar totais",
+        "func": "// Totais do banco (depois de cada passagem e ao iniciar)\nmsg.topic = \"SELECT COUNT(*) AS total, COALESCE(SUM(sinal = 'VERDE'), 0) AS verde, COALESCE(SUM(sinal = 'AMARELO'), 0) AS amarelo, COALESCE(SUM(sinal = 'VERMELHO'), 0) AS vermelho, (SELECT COUNT(*) FROM passagens WHERE registrado_em >= strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-60 seconds')) AS por_min, (SELECT id FROM passagens ORDER BY id DESC LIMIT 1) AS ultimo_id, (SELECT registrado_em FROM passagens ORDER BY id DESC LIMIT 1) AS ultimo_em, (SELECT placa FROM passagens ORDER BY id DESC LIMIT 1) AS ultima_placa, (SELECT sinal FROM passagens ORDER BY id DESC LIMIT 1) AS ultimo_sinal FROM passagens\";\nmsg.payload = [];\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1220,
+        "y": 520,
+        "wires": [
+            [
+                "n_stats"
+            ]
+        ]
+    },
+    {
+        "id": "n_stats",
+        "type": "sqlite",
+        "z": "tab_semaforo",
+        "mydb": "cfg_sqlite",
+        "sqlquery": "msg.topic",
+        "sql": "",
+        "name": "Totais",
+        "x": 1390,
+        "y": 520,
+        "wires": [
+            [
+                "n_after"
+            ]
+        ]
+    },
+    {
+        "id": "n_after",
+        "type": "function",
+        "z": "tab_semaforo",
+        "name": "Avisar dashboard e ESP32",
+        "func": "// Guarda os totais em flow.transito e avisa as duas pontas\n// Saída 1 → dashboard (evento \"passagem\")   Saída 2 → ESP32 (buzzer + Serial)\n// Saída 3 → debug: a linha como ficou gravada na tabela passagens\nconst BASE = 'fatec/semaforo/01';\nconst EN = { VERDE: 'GREEN', AMARELO: 'YELLOW', VERMELHO: 'RED' };\nconst r = (msg.payload && msg.payload[0]) || {};\nconst last = r.ultimo_id ? {\n    id: r.ultimo_id,\n    at: r.ultimo_em,\n    plate: r.ultima_placa,\n    light: EN[r.ultimo_sinal],\n    violation: r.ultimo_sinal === 'VERMELHO',\n} : null;\nconst transito = {\n    total: r.total || 0, green: r.verde || 0, yellow: r.amarelo || 0, red: r.vermelho || 0,\n    perMin: r.por_min || 0, last,\n};\nflow.set('transito', transito);\nnode.status({ fill: 'blue', shape: 'dot', text: transito.total + ' passagens · ' + transito.red + ' infrações' });\n\nif (!msg.passagem || !last) return null; // carga inicial ao iniciar o Node-RED\nreturn [\n    { payload: { type: 'passagem', passage: last, stats: transito } },\n    { topic: BASE + '/cmd/passagem', payload: { placa: last.plate, sinal: last.light, infracao: last.violation } },\n    { topic: 'passagens', payload: { id: r.ultimo_id, registrado_em: r.ultimo_em, placa: r.ultima_placa, sinal: r.ultimo_sinal } },\n];",
+        "outputs": 3,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1180,
+        "y": 600,
+        "wires": [
+            [
+                "n_ws_out2"
+            ],
+            [
+                "n_pass_out"
+            ],
+            [
+                "n_debug_pass"
+            ]
+        ]
+    },
+    {
+        "id": "n_ws_out2",
+        "type": "websocket out",
+        "z": "tab_semaforo",
+        "name": "Dashboard /ws/semaforo",
+        "server": "cfg_ws",
+        "client": "",
+        "x": 1440,
+        "y": 580,
+        "wires": []
+    },
+    {
+        "id": "n_pass_out",
+        "type": "mqtt out",
+        "z": "tab_semaforo",
+        "name": "Passagem → ESP32 (buzzer)",
+        "topic": "",
+        "qos": "0",
+        "retain": "false",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "cfg_broker",
+        "x": 1450,
+        "y": 620,
+        "wires": []
+    },
+    {
+        "id": "n_debug_pass",
+        "type": "debug",
+        "z": "tab_semaforo",
+        "name": "banco: passagem gravada",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1410,
+        "y": 660,
+        "wires": []
+    },
+    {
+        "id": "c_api",
+        "type": "comment",
+        "z": "tab_semaforo",
+        "name": "5. API HTTP (http://localhost:1880/api/...)",
+        "info": "",
+        "x": 210,
+        "y": 720,
+        "wires": []
+    },
+    {
+        "id": "n_api_pass",
+        "type": "http in",
+        "z": "tab_semaforo",
+        "name": "",
+        "url": "/api/passagens",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 140,
+        "y": 760,
+        "wires": [
+            [
+                "n_api_pass_lim"
+            ]
+        ]
+    },
+    {
+        "id": "n_api_pass_lim",
+        "type": "function",
+        "z": "tab_semaforo",
+        "name": "limite (padrão 10)",
+        "func": "const n = parseInt(msg.req.query.limite, 10);\nmsg.params = { $limite: Number.isFinite(n) && n > 0 ? Math.min(n, 200) : 10 };\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 340,
+        "y": 760,
+        "wires": [
+            [
+                "n_api_pass_sql"
+            ]
+        ]
+    },
+    {
+        "id": "n_api_pass_sql",
+        "type": "sqlite",
+        "z": "tab_semaforo",
+        "mydb": "cfg_sqlite",
+        "sqlquery": "prepared",
+        "sql": "SELECT id, registrado_em, placa, sinal, sinal = 'VERMELHO' AS infracao FROM passagens ORDER BY id DESC LIMIT $limite",
+        "name": "Últimas passagens",
+        "x": 550,
+        "y": 760,
+        "wires": [
+            [
+                "n_api_pass_res"
+            ]
+        ]
+    },
+    {
+        "id": "n_api_pass_res",
+        "type": "http response",
+        "z": "tab_semaforo",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "content-type": "application/json"
+        },
+        "x": 750,
+        "y": 760,
+        "wires": []
+    },
+    {
+        "id": "n_api_inf",
+        "type": "http in",
+        "z": "tab_semaforo",
+        "name": "",
+        "url": "/api/infracoes",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 140,
+        "y": 820,
+        "wires": [
+            [
+                "n_api_inf_sql"
+            ]
+        ]
+    },
+    {
+        "id": "n_api_inf_sql",
+        "type": "sqlite",
+        "z": "tab_semaforo",
+        "mydb": "cfg_sqlite",
+        "sqlquery": "fixed",
+        "sql": "SELECT id, registrado_em, placa FROM v_infracoes ORDER BY id DESC LIMIT 100",
+        "name": "Infrações",
+        "x": 360,
+        "y": 820,
+        "wires": [
+            [
+                "n_api_inf_res"
+            ]
+        ]
+    },
+    {
+        "id": "n_api_inf_res",
+        "type": "http response",
+        "z": "tab_semaforo",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "content-type": "application/json"
+        },
+        "x": 560,
+        "y": 820,
+        "wires": []
+    },
+    {
+        "id": "n_api_est",
+        "type": "http in",
+        "z": "tab_semaforo",
+        "name": "",
+        "url": "/api/estatisticas",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 150,
+        "y": 880,
+        "wires": [
+            [
+                "n_api_est_sql"
+            ]
+        ]
+    },
+    {
+        "id": "n_api_est_sql",
+        "type": "sqlite",
+        "z": "tab_semaforo",
+        "mydb": "cfg_sqlite",
+        "sqlquery": "fixed",
+        "sql": "SELECT COUNT(*) AS total, COALESCE(SUM(sinal = 'VERDE'), 0) AS verde, COALESCE(SUM(sinal = 'AMARELO'), 0) AS amarelo, COALESCE(SUM(sinal = 'VERMELHO'), 0) AS infracoes, (SELECT COUNT(*) FROM passagens WHERE date(registrado_em, 'localtime') = date('now', 'localtime')) AS passagens_hoje, (SELECT COUNT(*) FROM passagens WHERE sinal = 'VERMELHO' AND date(registrado_em, 'localtime') = date('now', 'localtime')) AS infracoes_hoje FROM passagens",
+        "name": "Estatísticas",
+        "x": 360,
+        "y": 880,
+        "wires": [
+            [
+                "n_api_est_first"
+            ]
+        ]
+    },
+    {
+        "id": "n_api_est_first",
+        "type": "function",
+        "z": "tab_semaforo",
+        "name": "primeira linha",
+        "func": "msg.payload = (msg.payload && msg.payload[0]) || {};\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 550,
+        "y": 880,
+        "wires": [
+            [
+                "n_api_est_res"
+            ]
+        ]
+    },
+    {
+        "id": "n_api_est_res",
+        "type": "http response",
+        "z": "tab_semaforo",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "content-type": "application/json"
+        },
+        "x": 730,
+        "y": 880,
+        "wires": []
+    },
+    {
+        "id": "n_api_placa",
+        "type": "http in",
+        "z": "tab_semaforo",
+        "name": "",
+        "url": "/api/resumo-por-placa",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 160,
+        "y": 940,
+        "wires": [
+            [
+                "n_api_placa_sql"
+            ]
+        ]
+    },
+    {
+        "id": "n_api_placa_sql",
+        "type": "sqlite",
+        "z": "tab_semaforo",
+        "mydb": "cfg_sqlite",
+        "sqlquery": "fixed",
+        "sql": "SELECT * FROM v_resumo_por_placa",
+        "name": "Resumo por placa",
+        "x": 400,
+        "y": 940,
+        "wires": [
+            [
+                "n_api_placa_res"
+            ]
+        ]
+    },
+    {
+        "id": "n_api_placa_res",
+        "type": "http response",
+        "z": "tab_semaforo",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "content-type": "application/json"
+        },
+        "x": 600,
+        "y": 940,
+        "wires": []
+    },
+    {
+        "id": "n_api_catch",
+        "type": "catch",
+        "z": "tab_semaforo",
+        "name": "Erro na API",
+        "scope": [
+            "n_api_pass_sql",
+            "n_api_inf_sql",
+            "n_api_est_sql",
+            "n_api_placa_sql"
+        ],
+        "uncaught": false,
+        "x": 140,
+        "y": 1000,
+        "wires": [
+            [
+                "n_api_err"
+            ]
+        ]
+    },
+    {
+        "id": "n_api_err",
+        "type": "function",
+        "z": "tab_semaforo",
+        "name": "HTTP 500",
+        "func": "msg.statusCode = 500;\nmsg.payload = { erro: msg.error && msg.error.message ? msg.error.message : 'erro no banco' };\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 320,
+        "y": 1000,
+        "wires": [
+            [
+                "n_api_err_res"
+            ]
+        ]
+    },
+    {
+        "id": "n_api_err_res",
+        "type": "http response",
+        "z": "tab_semaforo",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 490,
+        "y": 1000,
+        "wires": []
+    },
+    {
+        "id": "n_sw_esp32",
+        "type": "switch",
+        "z": "tab_semaforo",
+        "name": "Separar por sensor",
+        "property": "topic",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "cont",
+                "v": "/sensor/",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "fatec/semaforo/01/estado",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "fatec/semaforo/01/status",
+                "vt": "str"
+            }
+        ],
+        "checkall": "false",
+        "repair": false,
+        "outputs": 3,
+        "x": 900,
+        "y": 320,
+        "wires": [
+            [
+                "n_debug_sensores"
+            ],
+            [
+                "n_rbe_luz"
+            ],
+            [
+                "n_debug_status"
+            ]
+        ]
+    },
+    {
+        "id": "n_debug_sensores",
+        "type": "debug",
+        "z": "tab_semaforo",
+        "name": "ESP32: botão e HC-SR04",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1170,
+        "y": 280,
+        "wires": []
+    },
+    {
+        "id": "n_rbe_luz",
+        "type": "rbe",
+        "z": "tab_semaforo",
+        "name": "só quando a cor muda",
+        "func": "rbe",
+        "gap": "",
+        "start": "",
+        "inout": "out",
+        "septopics": false,
+        "property": "payload.light",
+        "topi": "topic",
+        "x": 1150,
+        "y": 320,
+        "wires": [
+            [
+                "n_debug_leds"
+            ]
+        ]
+    },
+    {
+        "id": "n_debug_leds",
+        "type": "debug",
+        "z": "tab_semaforo",
+        "name": "ESP32: LEDs (cor e tempos)",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1400,
+        "y": 320,
+        "wires": []
+    },
+    {
+        "id": "n_debug_status",
+        "type": "debug",
+        "z": "tab_semaforo",
+        "name": "ESP32: status (online, Wi-Fi)",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1180,
+        "y": 360,
+        "wires": []
+    },
+    {
+        "id": "n_debug_btn",
+        "type": "debug",
+        "z": "tab_semaforo",
+        "name": "dashboard: botão de pedestre",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 880,
+        "y": 460,
+        "wires": []
+    }
+]
