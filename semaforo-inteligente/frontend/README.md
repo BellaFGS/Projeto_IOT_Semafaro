@@ -209,6 +209,7 @@ para o modo `?fonte=simulacao`. Se uma regra mudar no fluxo, mude lá também.
 
 ```
 frontend/
+├── arte/                            ← artes originais em alta resolução (fora do build)
 ├── index.html
 ├── package.json
 ├── .env.development                 ← fonte de dados padrão (Node-RED local)
@@ -248,6 +249,6 @@ frontend/
   Nada de cantos arredondados nem desfoque.
 - **Cores:** vermelho `#ff4d5e`, amarelo `#ffc23d` e verde `#3ee87a` são as cores do sinal e também de infração, atenção e ok.
   Ciano `#55d6ff` para dados do circuito e violeta `#b48cff` para o modo pedestre. Texto creme `#f6f0d8` e apoio `#9ea6d6`.
-- **Sprites:** sempre com `image-rendering: pixelated` (classe `.pixel-art`). Artes originais em `docs/arte/`.
+- **Sprites:** sempre com `image-rendering: pixelated` (classe `.pixel-art`). Artes originais em `arte/`.
 
 Os tokens ficam em [`src/index.css`](src/index.css). Para mudar a identidade, edite as variáveis `--px-*`.

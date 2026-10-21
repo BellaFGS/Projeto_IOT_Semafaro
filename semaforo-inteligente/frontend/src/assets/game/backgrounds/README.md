@@ -1,6 +1,6 @@
 # 🏙️ Fundos (`backgrounds/`)
 
-- **`rua-melhorada.webp`**: fundo atual do cenário (pixel art, 3072×2048). Original em `docs/arte/rua-melhorada-original.png`.
+- **`rua-melhorada.webp`**: fundo atual do cenário (pixel art, 3072×2048). Original em `frontend/arte/rua-melhorada-original.png`.
 - **`rua.png`**: rua do cenário antigo. Não é mais usada; fica guardada para referência.
 
 Para usar um fundo novo:

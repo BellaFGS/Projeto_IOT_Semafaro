@@ -91,8 +91,8 @@ semaforo-inteligente/
 ├── wokwi/                    ← ESP32: diagram.json, firmware PlatformIO, wokwi.toml
 ├── node-red/                 ← broker MQTT, fluxos (flows.json), API e ESP32 de teste
 ├── database/                 ← schema.sql do SQLite: tabela passagens (o .db é gerado pelo Node-RED)
-└── frontend/                 ← dashboard React
-docs/                         ← roteiro da atividade e artes originais (docs/arte)
+└── frontend/                 ← dashboard React (artes originais em frontend/arte)
+docs/                         ← roteiro da atividade
 ```
 
 ## ▶️ Como rodar tudo
