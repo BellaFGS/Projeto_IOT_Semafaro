@@ -1,25 +1,56 @@
 /**
  * Contrato de dados do Semáforo Inteligente.
  *
- * Fluxo: HC-SR04 / botão → ESP32 (Wokwi) → MQTT → Node-RED → WebSocket → Dashboard.
- * O Node-RED junta as mensagens MQTT do ESP32, aplica as regras e envia ao
- * dashboard um único objeto `TrafficTelemetry` em JSON (ver README.md).
+ * Dois sistemas que conversam pelo Node-RED:
+ *   1. Semáforo: ESP32 (Wokwi) → MQTT → Node-RED → WebSocket → dashboard (`TrafficTelemetry`).
+ *   2. Carros: dashboard → WebSocket → Node-RED → SQLite → dashboard (`PassageEvent`) e ESP32 (buzzer).
  */
 
 export type LightState = 'RED' | 'YELLOW' | 'GREEN';
 
-/** Modo de operação decidido pelas regras do Node-RED. */
-export type TrafficMode = 'AUTOMATICO' | 'PEDESTRE' | 'FLUXO_INTENSO' | 'ATENCAO';
+/** Modo de operação do semáforo. */
+export type TrafficMode = 'AUTOMATICO' | 'PEDESTRE' | 'ATENCAO';
 
 export type AlertLevel = 'info' | 'warning' | 'critical';
 
 export interface TrafficAlert {
   level: AlertLevel;
-  /** Identificador estável da regra (ex.: VEICULO_PROXIMO). */
+  /** Identificador estável da regra (ex.: PEDESTRE_AGUARDANDO). */
   code: string;
   message: string;
 }
 
+/** Tempo programado de cada LED no firmware, em segundos. */
+export interface LightTimes {
+  verde: number;
+  amarelo: number;
+  vermelho: number;
+  vermelhoPedestre: number;
+}
+
+/** Um carro que passou pelo sensor, como gravado no banco. */
+export interface Passage {
+  id: number;
+  /** ISO 8601. */
+  at: string;
+  plate: string;
+  /** Cor do semáforo no momento da passagem. */
+  light: LightState;
+  /** Passou no vermelho. */
+  violation: boolean;
+}
+
+/** Totais do banco de passagens. */
+export interface PassageStats {
+  total: number;
+  green: number;
+  yellow: number;
+  red: number;
+  /** Passagens no último minuto. */
+  perMin: number;
+}
+
+/** Telemetria do semáforo (sistema 1), um objeto por mensagem. */
 export interface TrafficTelemetry {
   type: 'telemetry';
   deviceId: string;
@@ -32,21 +63,10 @@ export interface TrafficTelemetry {
     /** Duração total programada para o estado atual. */
     durationS: number;
   };
+  times: LightTimes | null;
   mode: TrafficMode;
-  sensors: {
-    /** Distância medida pelo HC-SR04, em cm. */
-    ultrasonicCm: number;
-    /** true quando a distância está abaixo do limiar de detecção. */
-    vehicleDetected: boolean;
-    /** Pedido de travessia pendente (botão de pedestre). */
-    pedestrianRequest: boolean;
-  };
-  flow: {
-    /** Total acumulado de veículos detectados. */
-    vehicleCount: number;
-    /** Veículos no último minuto. */
-    vehiclesPerMin: number;
-  };
+  /** Pedido de travessia pendente (botão de pedestre). */
+  pedestrianRequest: boolean;
   actuators: {
     ledRed: boolean;
     ledYellow: boolean;
@@ -59,6 +79,16 @@ export interface TrafficTelemetry {
     uptimeS: number;
   };
   alerts: TrafficAlert[];
+  /** Totais do sistema de carros, para o dashboard abrir já preenchido. */
+  passages: PassageStats;
+  lastPassage: Passage | null;
+}
+
+/** Evento do sistema de carros: uma passagem acabou de ser gravada no banco. */
+export interface PassageEvent {
+  type: 'passagem';
+  passage: Passage;
+  stats: PassageStats;
 }
 
 /** De onde o dashboard está lendo os dados. */
