@@ -8,6 +8,28 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      (function () {
+        const isGitHubPages =
+          window.location.hostname.endsWith('.github.io');
+
+        if (!isGitHubPages) {
+          return;
+        }
+
+        const url = new URL(window.location.href);
+
+        if (!url.searchParams.has('fonte')) {
+          url.searchParams.set('fonte', 'simulacao');
+
+          window.history.replaceState(
+            null,
+            '',
+            url.pathname + url.search + url.hash
+          );
+        }
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
