@@ -279,7 +279,7 @@ Abra `http://localhost:5173` no navegador. Os carros virtuais começam a circula
 ### Modos alternativos
 
 - **Sem Wokwi:** execute a tarefa **ESP32 de teste** ou, na pasta `node-red`, rode `npm.cmd run esp32-fake`. No simulador, `p` aciona o botão, `c` simula um veículo e `q` encerra. **Não execute o ESP32 fictício junto com o Wokwi**, pois ambos publicam nos mesmos tópicos.
-- **Sem backend:** com o frontend iniciado, acesse `http://localhost:5173/?fonte=simulacao`. Esse modo simula os eventos no navegador e não grava passagens no SQLite.
+- **Sem backend:** com o frontend iniciado, acesse `http://localhost:5173/?fonte=simulacao`. Esse modo simula os eventos no navegador e não grava passagens no SQLite. Ele também está publicado no GitHub Pages: [bellafgs.github.io/Projeto_IOT_Semafaro/?fonte=simulacao](https://bellafgs.github.io/Projeto_IOT_Semafaro/?fonte=simulacao).
 
 ### Solução de problemas
 
@@ -293,7 +293,7 @@ Abra `http://localhost:5173` no navegador. Os carros virtuais começam a circula
 
 ## 🧪 Testes de integração
 
-Os cenários abaixo descrevem **como validar o comportamento esperado**. Eles não representam, por si só, evidência de que os testes foram executados.
+Os cenários abaixo descrevem **como validar manualmente o comportamento esperado** com o Wokwi, o Node-RED e o dashboard em execução. As regras do Node-RED também são verificadas automaticamente, como descrito em [Validação automática](#validação-automática-github-actions).
 
 | Teste | Procedimento | Resultado esperado |
 | --- | --- | --- |
@@ -306,6 +306,25 @@ Os cenários abaixo descrevem **como validar o comportamento esperado**. Eles n�
 | ESP32 offline | Interromper Wokwi | Avisos de dados atrasados e de falta de comunicação |
 | Node-RED offline | Interromper Node-RED | Alerta de desconexão e tentativa de reconexão |
 
+### Validação automática (GitHub Actions)
+
+O workflow `.github/workflows/validacao.yml` roda a cada push e pull request nas branches `main` e `develop`:
+
+| Etapa | O que verifica |
+| --- | --- |
+| Frontend | `oxlint`, tipos (`tsc`) e build do Vite, inclusive no modo GitHub Pages |
+| Firmware | Compilação do ESP32 no PlatformIO e caminhos do `wokwi.toml` |
+| Node-RED | `flows.json`, `diagram.json` e `schema.sql`, além do teste de integração |
+
+O teste de integração (`node-red/scripts/teste-integracao.mjs`) simula o ESP32 por MQTT e o dashboard por WebSocket e confere a validação das passagens, a cor oficial do ESP32, as infrações, o sensor HC-SR04, o botão virtual, a API HTTP e o alerta de ESP32 offline. Para rodar localmente, a partir da pasta `node-red`, com um banco vazio e sem o Wokwi ou o ESP32 fictício ligados:
+
+```powershell
+$env:SEMAFORO_DB = "$env:TEMP\teste.db"; npm.cmd start   # terminal A
+npm.cmd run test:integracao                            # terminal B
+```
+
+O deploy do dashboard no GitHub Pages é feito pelo workflow `.github/workflows/deploy-pages.yml` a cada alteração do frontend na branch `main`.
+
 ## 🛠️ Tecnologias
 
 | Camada | Tecnologias |
@@ -317,6 +336,7 @@ Os cenários abaixo descrevem **como validar o comportamento esperado**. Eles n�
 | Integração e processamento | Node-RED 5, WebSocket, API HTTP |
 | Persistência | SQLite |
 | Interface | React 19, TypeScript, Vite, pixel art |
+| Automação e publicação | GitHub Actions, GitHub Pages |
 
 ## 🔭 Possíveis evoluções
 
