@@ -29,7 +29,7 @@
       {
         "label": "1. Node-RED (broker MQTT + regras + banco + API)",
         "type": "shell",
-        "command": "npm start",
+        "command": "npm.cmd start",
         "options": { "cwd": "${workspaceFolder:node-red}" },
         "isBackground": true,
         "problemMatcher": [],
@@ -38,7 +38,7 @@
       {
         "label": "2. Frontend (dashboard em http://localhost:5173)",
         "type": "shell",
-        "command": "npm run dev",
+        "command": "npm.cmd run dev",
         "options": { "cwd": "${workspaceFolder:frontend}" },
         "isBackground": true,
         "problemMatcher": [],

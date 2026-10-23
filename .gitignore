@@ -44,3 +44,5 @@ semaforo-inteligente/node-red/context/
 
 # Capturas temporárias do Playwright
 .playwright-mcp/
+
+semaforo.db
