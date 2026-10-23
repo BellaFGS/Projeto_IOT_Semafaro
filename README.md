@@ -329,4 +329,33 @@ Os cenários abaixo descrevem **como validar o comportamento esperado**. Eles n�
 
 ---
 
+## 👥 Desenvolvedores
+<p align="left">
+  <a href="https://github.com/BellaFGS">
+    <strong>BellaFGS</strong>
+  </a>
+  <br/>
+  <sub>Desenvolvimento e gestão de projetos</sub>
+  <br/><br/>
+  <a href="https://github.com/Oroboni">
+    <strong>Oroboni</strong>
+  </a>
+  <br/>
+  <sub>Desenvolvimento de QA</sub>
+  <br/><br/>
+  <a href="https://github.com/Thomas-1610">
+    <strong>Thomas-1610</strong>
+  </a>
+  <br/>
+  <sub>Desenvolvimento da estrutura</sub>
+<br/><br/>
+    <a href="https://github.com/mkrosz">
+        <strong>MikeF.</strong>
+    </a>
+   <br/>
+  <sub>Documentação e validação</sub>
+</p>
+
+---
+
 **FATEC Sorocaba · Programação Multiplataforma · Projeto acadêmico de Internet das Coisas**
