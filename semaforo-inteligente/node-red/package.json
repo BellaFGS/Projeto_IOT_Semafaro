@@ -5,7 +5,8 @@
   "description": "Node-RED do Semáforo Inteligente: broker MQTT (Aedes), regras, SQLite, API e WebSocket do dashboard",
   "scripts": {
     "start": "node-red --userDir . --settings ./settings.js flows.json",
-    "esp32-fake": "node scripts/esp32-fake.mjs"
+    "esp32-fake": "node scripts/esp32-fake.mjs",
+    "test:integracao": "node --test scripts/teste-integracao.mjs"
   },
   "dependencies": {
     "node-red": "^5.0.8",

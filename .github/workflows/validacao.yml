@@ -1,0 +1,153 @@
+name: Validação do Projeto
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+
+  pull_request:
+    branches:
+      - main
+      - develop
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: validacao-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend:
+    name: Frontend (lint e build)
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: semaforo-inteligente/frontend
+
+    steps:
+      - name: Baixar repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: semaforo-inteligente/frontend/package-lock.json
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Verificar código (oxlint)
+        run: npm run lint
+
+      - name: Verificar tipos e compilar (tsc + Vite)
+        run: npm run build
+
+      - name: Compilar como no GitHub Pages
+        run: npm run build
+        env:
+          GITHUB_PAGES: 'true'
+
+  firmware:
+    name: Firmware ESP32 (PlatformIO)
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: semaforo-inteligente/wokwi
+
+    steps:
+      - name: Baixar repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Cache do PlatformIO
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.platformio
+            ~/.cache/pip
+          key: platformio-${{ runner.os }}-${{ hashFiles('semaforo-inteligente/wokwi/platformio.ini') }}
+
+      - name: Instalar PlatformIO
+        run: pip install --upgrade platformio
+
+      - name: Compilar firmware
+        run: pio run -e esp32dev
+
+      - name: Conferir arquivos usados pelo Wokwi
+        run: |
+          test -f .pio/build/esp32dev/firmware.bin
+          test -f .pio/build/esp32dev/firmware.elf
+          grep -q 'firmware = ".pio/build/esp32dev/firmware.bin"' wokwi.toml
+          grep -q 'elf = ".pio/build/esp32dev/firmware.elf"' wokwi.toml
+
+      - name: Guardar firmware compilado
+        uses: actions/upload-artifact@v4
+        with:
+          name: firmware-esp32
+          path: |
+            semaforo-inteligente/wokwi/.pio/build/esp32dev/firmware.bin
+            semaforo-inteligente/wokwi/.pio/build/esp32dev/firmware.elf
+          retention-days: 7
+
+  node-red:
+    name: Node-RED (fluxo, banco e integração)
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: semaforo-inteligente/node-red
+
+    steps:
+      - name: Baixar repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: semaforo-inteligente/node-red/package-lock.json
+
+      - name: Validar JSON do fluxo e do diagrama do Wokwi
+        run: |
+          node -e "JSON.parse(require('fs').readFileSync('flows.json', 'utf8'))"
+          node -e "JSON.parse(require('fs').readFileSync('../wokwi/diagram.json', 'utf8'))"
+
+      - name: Validar schema do banco (SQLite)
+        run: |
+          python3 - <<'EOF'
+          import sqlite3
+          db = sqlite3.connect(':memory:')
+          schema = open('../database/schema.sql', encoding='utf-8').read()
+          db.executescript(schema)
+          db.executescript(schema)  # precisa ser idempotente: o Node-RED roda a cada início
+          for nome in ('passagens', 'v_infracoes', 'v_resumo_por_placa'):
+              db.execute(f'SELECT * FROM {nome}').fetchall()
+          print('schema.sql ok')
+          EOF
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Iniciar Node-RED com banco de teste
+        run: |
+          SEMAFORO_DB="$RUNNER_TEMP/teste.db" nohup npm start > "$RUNNER_TEMP/node-red.log" 2>&1 &
+
+      - name: Teste de integração (MQTT, WebSocket, regras, banco e API)
+        run: npm run test:integracao
+
+      - name: Log do Node-RED
+        if: always()
+        run: cat "$RUNNER_TEMP/node-red.log"

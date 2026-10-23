@@ -94,6 +94,15 @@ npm run esp32-fake   # teclas: p = botão de pedestre, c = carro no HC-SR04, q =
 
 Pare o ESP32 fake antes de ligar o Wokwi: os dois usam o mesmo tópico.
 
+## Teste de integração
+
+`scripts/teste-integracao.mjs` faz o papel do ESP32 (MQTT) e do dashboard (WebSocket) e confere as regras de validação, a gravação no banco e a API. Roda também no GitHub Actions (`.github/workflows/validacao.yml`). Use um banco vazio e deixe o Wokwi e o ESP32 fake desligados:
+
+```bash
+SEMAFORO_DB=/tmp/teste.db npm start   # terminal 1
+npm run test:integracao               # terminal 2
+```
+
 ## Arquivos
 
 | Arquivo | O que é |
@@ -101,3 +110,4 @@ Pare o ESP32 fake antes de ligar o Wokwi: os dois usam o mesmo tópico.
 | `flows.json` | O fluxo; edite pelo editor do Node-RED e clique em **Implementar** (Deploy) |
 | `settings.js` | Porta, CORS da API e caminhos do banco (`SEMAFORO_DB`, `SEMAFORO_SCHEMA`) |
 | `scripts/esp32-fake.mjs` | ESP32 de teste |
+| `scripts/teste-integracao.mjs` | Teste de integração (MQTT, WebSocket, banco e API) |
