@@ -1,0 +1,442 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Roteiro – Projeto IoT Semáforo Inteligente</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm 18mm 16mm; }
+  :root { --ink:#1b1f24; --muted:#5a6370; --line:#d5dae1; --accent:#0b5cad; --soft:#eef3f9; --warn:#fff6e0; --warnline:#e0a800; }
+  * { box-sizing: border-box; }
+  body { font-family: "Segoe UI", Arial, sans-serif; color: var(--ink); font-size: 10.5pt; line-height: 1.45; margin: 0; background:#fff; }
+  h1 { font-size: 20pt; margin: 0 0 4px; color: var(--accent); }
+  h2 { font-size: 14pt; margin: 22px 0 8px; padding: 6px 10px; background: var(--accent); color: #fff; border-radius: 3px; page-break-after: avoid; }
+  h3 { font-size: 11.5pt; margin: 14px 0 6px; color: var(--accent); page-break-after: avoid; }
+  p { margin: 4px 0 8px; text-align: justify; }
+  ul { margin: 4px 0 8px 18px; padding: 0; }
+  li { margin: 2px 0; }
+  table { width: 100%; border-collapse: collapse; margin: 6px 0 12px; font-size: 9.5pt; page-break-inside: auto; }
+  tr { page-break-inside: avoid; }
+  th, td { border: 1px solid var(--line); padding: 5px 7px; vertical-align: top; text-align: left; }
+  th { background: var(--soft); }
+  code { font-family: Consolas, "Courier New", monospace; font-size: 9pt; background: #f3f5f8; padding: 0 3px; border-radius: 2px; }
+  pre { font-family: Consolas, "Courier New", monospace; font-size: 8.3pt; background: #1e2329; color: #e6e6e6; padding: 8px 10px; border-radius: 4px; white-space: pre-wrap; word-break: break-all; margin: 6px 0 10px; page-break-inside: avoid; }
+  .cover { text-align: center; padding-top: 40px; }
+  .cover .sub { color: var(--muted); font-size: 11pt; margin-bottom: 30px; }
+  .cover h1 { font-size: 24pt; }
+  .idtable td:first-child { width: 30%; font-weight: 600; background: var(--soft); }
+  .fill { display:inline-block; min-width: 60%; border-bottom: 1px solid #888; height: 1.1em; }
+  .box-warn { background: var(--warn); border-left: 4px solid var(--warnline); padding: 8px 12px; margin: 10px 0; }
+  .evid { border: 1px solid var(--line); border-radius: 4px; padding: 8px 12px; margin: 8px 0 12px; background: #fafbfc; page-break-inside: avoid; }
+  .evid b { color: var(--accent); }
+  .evid ul { list-style: none; margin-left: 0; }
+  .evid li::before { content: "✔ "; color: #1a8f3c; font-weight: 700; }
+  figure { margin: 8px 0 14px; text-align: center; page-break-inside: avoid; }
+  figure img { max-width: 100%; border: 1px solid var(--line); border-radius: 3px; }
+  figcaption { font-size: 8.8pt; color: var(--muted); margin-top: 3px; }
+  .placeholder { border: 2px dashed #9aa5b1; border-radius: 4px; height: 150px; display:flex; align-items:center; justify-content:center; color:#6b7684; font-size: 10pt; text-align:center; padding: 10px; margin: 8px 0 4px; }
+  .ok { color: #1a8f3c; font-weight: 700; }
+  .page-break { page-break-before: always; }
+  .lines div { border-bottom: 1px solid #999; height: 22px; }
+  .small { font-size: 8.8pt; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<!-- ===================== CAPA / IDENTIFICAÇÃO ===================== -->
+<div class="cover">
+  <div class="sub">ATIVIDADE AVALIATIVA – PROJETO IoT</div>
+  <h1>Semáforo Inteligente</h1>
+  <div class="sub">Wokwi + PlatformIO + MQTT + Node-RED + Dashboard<br>Roteiro de desenvolvimento, documentação, testes e apresentação</div>
+</div>
+
+<table class="idtable">
+  <tr><td>Nome do projeto</td><td>Semáforo Inteligente – monitoramento de trânsito e travessia de pedestres com IoT</td></tr>
+  <tr><td>Integrantes</td><td>Isabella Ferreira Gomes da Silva<br>Matheus Cuero Silva<br>Mike Willy Franguelli<br>Thomas Lourenço Lopes de Castro</td></tr>
+  <tr><td>Instituição / disciplina</td><td>FATEC Sorocaba – Programação Multiplataforma</td></tr>
+  <tr><td>Turma</td><td>5º ADS AMS – FATEC</td></tr>
+  <tr><td>Professor</td><td>Emerson de Oliveira Rocha</td></tr>
+  <tr><td>Data da apresentação</td><td>06/11/2026</td></tr>
+  <tr><td>Repositório</td><td>https://github.com/BellaFGS/Projeto_IOT_Semafaro</td></tr>
+  <tr><td>Dashboard on-line (GitHub Pages)</td><td>https://bellafgs.github.io/Projeto_IOT_Semafaro/?fonte=simulacao</td></tr>
+</table>
+
+<div class="box-warn">
+  <b>⚠ IMPORTANTE – ATUALIZAÇÃO E ENTREGA DO ROTEIRO.</b> Este roteiro foi preenchido e atualizado pelo grupo durante o desenvolvimento e representa a situação final do projeto: o que foi realizado em cada etapa, os resultados dos testes, as dificuldades, as soluções adotadas e as evidências.
+</div>
+
+<!-- ===================== 1 ===================== -->
+<h2>1. Objetivo da atividade</h2>
+<p>Desenvolver e documentar uma solução IoT completa, utilizando ESP32, simulação no Wokwi, desenvolvimento no PlatformIO, comunicação MQTT, processamento no Node-RED e apresentação dos dados em um Dashboard, registrando o desenvolvimento de cada etapa e as evidências de funcionamento.</p>
+
+<!-- ===================== 2 ===================== -->
+<h2>2. Identificação e planejamento do projeto</h2>
+<table>
+  <tr><th style="width:28%">Item</th><th>Definição do grupo</th></tr>
+  <tr><td>Problema real</td><td>Cruzamentos urbanos com pouca informação sobre o fluxo de veículos, avanços de sinal vermelho e risco para pedestres, que muitas vezes esperam um ciclo fixo sem poder pedir a travessia.</td></tr>
+  <tr><td>Objetivo geral</td><td>Criar um semáforo conectado que controla o ciclo veicular, atende pedidos de travessia de pedestres, registra cada passagem de veículo com a cor do sinal, identifica infrações e exibe tudo em tempo real em um dashboard.</td></tr>
+  <tr><td>Público / situação de uso</td><td>Órgãos de trânsito e prefeituras (monitoramento de cruzamentos), pedestres em faixas de travessia e uso educacional para demonstrar uma arquitetura IoT completa.</td></tr>
+  <tr><td>Sensores</td><td>Sensor ultrassônico HC-SR04 (detecção de veículo &lt; 50 cm) e botão de pedestre.</td></tr>
+  <tr><td>Atuadores</td><td>3 LEDs do semáforo veicular (vermelho, amarelo, verde), 2 LEDs do semáforo de pedestres (vermelho, verde) e buzzer.</td></tr>
+  <tr><td>Dados monitorados</td><td>Cor atual e tempo restante do sinal, pedido de pedestre, status do ESP32 (online, RSSI do Wi-Fi, uptime), detecções do HC-SR04, passagens de veículos (placa, horário, cor do sinal).</td></tr>
+  <tr><td>Informações no Dashboard</td><td>Semáforo com contagem regressiva e tempos, total de passagens e taxa por minuto, distribuição por cor, infrações (quantidade, % e última), histórico de passagens recentes, alertas e status de comunicação.</td></tr>
+  <tr><td>Alertas e automações</td><td>Passagem no vermelho = infração (aviso “MULTA!” + 3 bipes no ESP32); passagem no verde/amarelo = 1 bipe; pedido de pedestre encurta o verde para até 3 s e estende o vermelho para 10 s; alertas de dados atrasados (&gt; 8 s sem mensagens), ESP32 offline (Last Will MQTT) e Node-RED desconectado.</td></tr>
+</table>
+
+<h3>Descrição do problema</h3>
+<p>Em muitos cruzamentos não há dados sobre quantos veículos passam, em qual cor do sinal e com que frequência ocorrem avanços no vermelho. Pedestres também dependem de ciclos fixos, aumentando o tempo de espera e o risco de travessias inseguras.</p>
+<h3>Objetivo do projeto</h3>
+<p>Demonstrar, com um ESP32 simulado no Wokwi, um semáforo inteligente que publica seu estado via MQTT, recebe comandos (botão virtual de pedestre), tem os eventos validados e gravados pelo Node-RED em SQLite e é acompanhado em um dashboard web interativo que mostra estado, estatísticas, infrações e alertas em tempo real.</p>
+
+<h3>Arquitetura do sistema</h3>
+<pre>
+ ┌──────────────────┐   MQTT :1883    ┌─────────────────────────┐  WebSocket :1880  ┌────────────────────┐
+ │ ESP32 (Wokwi)    │ ──────────────▶ │ Node-RED + broker Aedes │ ────────────────▶ │ Dashboard React    │
+ │ LEDs, botão,     │ ◀────────────── │ regras / validação      │ ◀──────────────── │ (Vite :5173 /      │
+ │ HC-SR04, buzzer  │   comandos      │ API HTTP /api/...       │  passagens/botão  │  GitHub Pages)     │
+ └──────────────────┘                 └────────────┬────────────┘                   └────────────────────┘
+                                                   │ SQL
+                                             ┌─────▼─────┐
+                                             │  SQLite   │  tabela passagens + views
+                                             └───────────┘
+</pre>
+<p class="small">Fluxo do semáforo: ESP32 → MQTT → Node-RED → WebSocket → dashboard. Fluxo de passagem: carro simulado no dashboard → WebSocket → validação no Node-RED → SQLite → confirmação ao dashboard e comando MQTT ao ESP32 (buzzer).</p>
+
+<!-- ===================== 3 ===================== -->
+<h2 class="page-break">ETAPA 3 – Simulação no Wokwi</h2>
+<p><b>Objetivo:</b> montar, conectar e testar virtualmente o circuito antes da implementação.</p>
+
+<h3>3.1 Montagem do circuito</h3>
+<p>Foi utilizada a placa <b>ESP32 DevKit C v4</b> no simulador Wokwi, executado pela <b>extensão Wokwi Simulator do VS Code</b> (o projeto foi desenvolvido dentro desse ambiente, com o firmware compilado pelo PlatformIO e carregado via <code>wokwi.toml</code>). O circuito está descrito em <code>wokwi/diagram.json</code>:</p>
+<table>
+  <tr><th>Componente</th><th>Função</th><th>GPIO do ESP32</th><th>Observação</th></tr>
+  <tr><td>LED vermelho “PARE”</td><td>Semáforo veicular</td><td>25</td><td>Resistor 220 Ω</td></tr>
+  <tr><td>LED amarelo “ATENÇÃO”</td><td>Semáforo veicular</td><td>26</td><td>Resistor 220 Ω</td></tr>
+  <tr><td>LED verde “SIGA”</td><td>Semáforo veicular</td><td>27</td><td>Resistor 220 Ω</td></tr>
+  <tr><td>LED vermelho “PED PARE”</td><td>Semáforo de pedestres</td><td>32</td><td>Resistor 220 Ω</td></tr>
+  <tr><td>LED verde “PED SIGA”</td><td>Semáforo de pedestres</td><td>33</td><td>Resistor 220 Ω</td></tr>
+  <tr><td>Botão “PEDESTRE”</td><td>Pedido de travessia</td><td>14</td><td><code>INPUT_PULLUP</code>, debounce 50 ms</td></tr>
+  <tr><td>Sensor ultrassônico HC-SR04</td><td>Detecção de veículo</td><td>TRIG 5 / ECHO 18</td><td>Limiar &lt; 50 cm</td></tr>
+  <tr><td>Buzzer</td><td>Alerta sonoro</td><td>13</td><td>1760 Hz, bipes de 90 ms</td></tr>
+</table>
+
+<h3>3.2 Teste dos sensores</h3>
+<table>
+  <tr><th>Sensor</th><th>Valor</th><th>Unidade</th><th>Resultado / observação</th></tr>
+  <tr><td>HC-SR04 (sem veículo)</td><td>320</td><td>cm</td><td class="ok">OK – distância padrão do diagrama, acima do limiar; nenhum evento gerado.</td></tr>
+  <tr><td>HC-SR04 (veículo simulado)</td><td>35,3</td><td>cm</td><td class="ok">OK – publica em <code>sensor/veiculo</code>; o Node-RED registra passagem com placa <code>WOKWI</code>.</td></tr>
+  <tr><td>Botão de pedestre</td><td>LOW (pressionado)</td><td>nível lógico</td><td class="ok">OK – publica <code>{"pressed":true}</code>; verde encerra em até 3 s e o vermelho seguinte dura 10 s.</td></tr>
+  <tr><td>Wi-Fi (Wokwi-GUEST)</td><td>≈ -58 a -68</td><td>dBm</td><td class="ok">OK – RSSI enviado no tópico <code>status</code> a cada 10 s.</td></tr>
+</table>
+<p><b>Testes realizados:</b> com a simulação em execução, o slider do HC-SR04 foi movido abaixo de 50 cm e verificou-se a mensagem no Monitor Serial (<code>[SENSOR] carro detectado pelo HC-SR04</code>) e o registro no banco. O botão foi pressionado durante o verde, no amarelo e no vermelho: no verde o ciclo foi antecipado; no vermelho o pedido foi ignorado, conforme a regra. Os LEDs de pedestre acenderam de forma inversa ao semáforo veicular.</p>
+
+<figure>
+  <img src="evidencias/wokwi-circuito.png" alt="Circuito no Wokwi">
+  <figcaption>Figura 1 – Circuito do <code>diagram.json</code> em simulação no Wokwi: semáforo veicular em VERDE (SIGA) e pedestre em PARE; HC-SR04, botão PEDESTRE e buzzer ligados ao ESP32.</figcaption>
+</figure>
+<p class="small">Para gerar os prints, o mesmo <code>diagram.json</code> e o mesmo código (<code>main.cpp</code> + <code>config.h</code>) foram carregados no wokwi.com, com as bibliotecas PubSubClient e ArduinoJson. A única diferença é o broker: no navegador não existe o <code>host.wokwi.internal</code> da extensão do VS Code, então foi usado <code>broker.hivemq.com:1883</code>.</p>
+
+<div class="evid"><b>Entrega / evidências da etapa</b>
+<ul>
+  <li>Projeto Wokwi: executado pela extensão do VS Code; arquivos <code>semaforo-inteligente/wokwi/diagram.json</code> e <code>wokwi.toml</code> no repositório.</li>
+  <li>Print do circuito: Figura 1.</li>
+  <li>Código utilizado: <code>wokwi/src/main.cpp</code> e <code>wokwi/include/config.h</code> (Etapa 4).</li>
+  <li>Evidência dos valores dos sensores: tabela 3.2, registro <code>WOKWI</code> na API (Etapa 5) e Figuras 1, 2 e 6.</li>
+  <li>Descrição dos testes: item 3.2.</li>
+</ul></div>
+
+<!-- ===================== 4 ===================== -->
+<h2>ETAPA 4 – Desenvolvimento no PlatformIO</h2>
+<p><b>Objetivo:</b> desenvolver e testar o código do ESP32.</p>
+
+<h3>4.1 Desenvolvimento do código</h3>
+<p>O firmware foi escrito em C++ (framework Arduino) no PlatformIO, ambiente <code>esp32dev</code>, com as bibliotecas <b>PubSubClient</b> (MQTT) e <b>ArduinoJson 7</b>. Todas as configurações (rede, broker, tópicos, pinos, tempos e limiares) ficam centralizadas em <code>include/config.h</code>, e a lógica em <code>src/main.cpp</code>. O <code>loop()</code> não usa <code>delay()</code>: cada tarefa roda por intervalo com <code>millis()</code>, para que o semáforo continue funcionando mesmo se a rede cair.</p>
+<pre>
+wokwi/
+├── platformio.ini        → [env:esp32dev], monitor 115200, PubSubClient + ArduinoJson@^7
+├── wokwi.toml            → firmware = .pio/build/esp32dev/firmware.bin / .elf
+├── diagram.json          → circuito do Wokwi
+├── include/config.h      → Wi-Fi, broker, tópicos, pinos, tempos (12/3/8/10 s), limiar 50 cm
+└── src/main.cpp          → lógica do semáforo, MQTT, sensores e buzzer
+</pre>
+<table>
+  <tr><th style="width:28%">Função</th><th>Responsabilidade</th></tr>
+  <tr><td><code>setup()</code></td><td>Configura pinos, acende o estado inicial, conecta Wi-Fi e MQTT.</td></tr>
+  <tr><td><code>loop()</code></td><td>Reconecta Wi-Fi/MQTT (a cada 3 s), lê botão, lê sensor a cada 300 ms, avança o relógio do semáforo a cada 1 s e publica status a cada 10 s.</td></tr>
+  <tr><td><code>applyLeds()</code> / <code>nextLight()</code></td><td>Acende os LEDs veiculares e de pedestre; ciclo verde → amarelo → vermelho com os tempos configurados.</td></tr>
+  <tr><td><code>requestPedestrian()</code></td><td>Atende o pedido de travessia (botão físico ou virtual): limita o verde a 3 s e marca vermelho de 10 s.</td></tr>
+  <tr><td><code>handleButton()</code> / <code>handleSensor()</code> / <code>readDistanceCm()</code></td><td>Leitura do botão com debounce e do HC-SR04 com detecção de borda (só publica quando o carro chega).</td></tr>
+  <tr><td><code>publishState()</code> / <code>publishStatus()</code> / <code>publishJson()</code></td><td>Montagem dos JSON e publicação MQTT; status retido.</td></tr>
+  <tr><td><code>connectWifi()</code> / <code>connectMqtt()</code></td><td>Conexão à rede Wokwi-GUEST e ao broker com <b>Last Will</b> <code>{"online":false}</code>.</td></tr>
+  <tr><td><code>onMqttMessage()</code> / <code>beep()</code></td><td>Recebe comandos (<code>botao_virtual</code>, <code>passagem</code>) e emite 1 bipe (verde/amarelo) ou 3 bipes (infração).</td></tr>
+</table>
+<pre>
+void loop() {
+  if (WiFi.status() != WL_CONNECTED) connectWifi();
+  if (!mqtt.connected() &amp;&amp; now - lastMqttTry &gt; 3000) { lastMqttTry = now; connectMqtt(); }
+  mqtt.loop();
+  handleButton(now);
+  if (now - lastSensorMs &gt;= SENSOR_INTERVAL_MS) { lastSensorMs = now; handleSensor(); }
+  if (now - lastSecondMs &gt;= 1000) { lastSecondMs = now; if (--remainingS &lt;= 0) nextLight(); publishState(); }
+  if (now - lastStatusMs &gt;= STATUS_INTERVAL_MS) { lastStatusMs = now; publishStatus(); }
+}
+</pre>
+
+<h3>4.2 Testes do ESP32</h3>
+<table>
+  <tr><th style="width:34%">Teste</th><th>Resultado / observação</th></tr>
+  <tr><td>ESP32 iniciou corretamente</td><td class="ok">OK – banner “SEMAFORO INTELIGENTE – ESP32” com os tempos 12/3/8 (10) s no Monitor Serial.</td></tr>
+  <tr><td>Sensores funcionando</td><td class="ok">OK – HC-SR04 detecta abaixo de 50 cm; botão gera o pedido de travessia.</td></tr>
+  <tr><td>Wi-Fi conectado</td><td class="ok">OK – <code>[WIFI] ok, IP 10.10.0.2</code> na rede Wokwi-GUEST (Figura 2).</td></tr>
+  <tr><td>MQTT conectado</td><td class="ok">OK – <code>[MQTT] conectando em ...:1883... ok</code> (<code>host.wokwi.internal</code> no VS Code; <code>broker.hivemq.com</code> na Figura 2).</td></tr>
+  <tr><td>Monitor serial apresentando dados</td><td class="ok">OK – mensagens <code>[SINAL]</code>, <code>[BOTAO]</code>, <code>[SENSOR]</code> e <code>[PASSAGEM]</code> em 115200 baud.</td></tr>
+</table>
+<p>Monitor Serial da simulação (115200 baud): inicialização, conexão Wi-Fi e MQTT, ciclo do semáforo, pedido de pedestre pelo botão físico (vermelho passa a 10 s) e detecção do HC-SR04 a 35,3 cm:</p>
+<figure>
+  <img src="evidencias/wokwi-serial.png" alt="Monitor Serial do Wokwi" style="max-width:80%">
+  <figcaption>Figura 2 – Monitor Serial do ESP32 no Wokwi.</figcaption>
+</figure>
+
+<div class="evid"><b>Entrega / evidências da etapa</b>
+<ul>
+  <li>Código do PlatformIO: pasta <code>semaforo-inteligente/wokwi/</code> do repositório.</li>
+  <li>Estrutura do projeto e trechos do código: item 4.1.</li>
+  <li>Print do Monitor Serial: Figura 2.</li>
+  <li>Descrição dos testes: tabela 4.2.</li>
+</ul></div>
+
+<!-- ===================== 5 ===================== -->
+<h2>ETAPA 5 – Configuração do MQTT</h2>
+<p><b>Objetivo:</b> estabelecer a comunicação entre ESP32, broker e demais componentes do sistema.</p>
+<p>Broker: <b>Aedes</b> embutido no Node-RED (<code>node-red-contrib-aedes</code>), porta <code>1883</code>. Dentro do Wokwi o ESP32 acessa o computador pelo host <code>host.wokwi.internal</code>. Prefixo dos tópicos: <code>fatec/semaforo/01</code>.</p>
+
+<h3>5.1 Tópicos MQTT</h3>
+<table>
+  <tr><th>Função</th><th>Tópico MQTT</th><th>Direção</th><th>Frequência</th></tr>
+  <tr><td>Estado do semáforo (cor, tempo restante, tempos, pedido de pedestre)</td><td><code>fatec/semaforo/01/estado</code></td><td>ESP32 → Node-RED</td><td>1 s</td></tr>
+  <tr><td>Status do dispositivo (online, RSSI, uptime) – retido + Last Will</td><td><code>fatec/semaforo/01/status</code></td><td>ESP32 → Node-RED</td><td>10 s</td></tr>
+  <tr><td>Botão físico de pedestre</td><td><code>fatec/semaforo/01/sensor/botao</code></td><td>ESP32 → Node-RED</td><td>evento</td></tr>
+  <tr><td>Veículo detectado pelo HC-SR04</td><td><code>fatec/semaforo/01/sensor/veiculo</code></td><td>ESP32 → Node-RED</td><td>evento</td></tr>
+  <tr><td>Botão virtual de pedestre (dashboard)</td><td><code>fatec/semaforo/01/cmd/botao_virtual</code></td><td>Node-RED → ESP32</td><td>evento</td></tr>
+  <tr><td>Confirmação de passagem registrada (aciona buzzer)</td><td><code>fatec/semaforo/01/cmd/passagem</code></td><td>Node-RED → ESP32</td><td>evento</td></tr>
+</table>
+
+<h3>5.2 Comunicação</h3>
+<p>O ESP32 monta os payloads em JSON com ArduinoJson e publica com PubSubClient. O nó <i>mqtt in</i> do Node-RED assina <code>fatec/semaforo/01/#</code>, um <i>switch</i> separa as mensagens por tópico e a função “Estado do semáforo” guarda o estado oficial e gera a telemetria enviada ao dashboard por WebSocket (<code>ws://localhost:1880/ws/semaforo</code>). No sentido inverso, os comandos do dashboard chegam por WebSocket e o Node-RED publica nos tópicos <code>cmd/...</code>, que o ESP32 assina. O status é publicado com <i>retain</i> e há <b>Last Will</b>: se o ESP32 cair, o broker publica <code>{"online":false}</code> e o dashboard mostra “SEM ESP32”.</p>
+<table>
+  <tr><th style="width:18%">Exemplo</th><th>Conteúdo</th></tr>
+  <tr><td>Tópico</td><td><code>fatec/semaforo/01/estado</code></td></tr>
+  <tr><td>Mensagem</td><td><code>{"light":"GREEN","remainingS":9,"durationS":12,"pedestrianRequest":false,"tempos":{"verde":12,"amarelo":3,"vermelho":8,"vermelhoPedestre":10}}</code></td></tr>
+</table>
+<p>Mensagens capturadas por um cliente assinante de <code>fatec/semaforo/01/#</code> durante o teste de integração. <span class="small">(Nesta captura o dispositivo foi o script <code>esp32-fake</code> do projeto, que publica exatamente os mesmos tópicos e JSON do firmware; a última linha foi publicada manualmente no tópico do HC-SR04.)</span></p>
+<pre>
+12:03:12 fatec/semaforo/01/status   {"online":true,"wifiRssi":-58,"uptimeS":0}
+12:03:13 fatec/semaforo/01/estado   {"light":"GREEN","remainingS":11,"durationS":12,"pedestrianRequest":false,"tempos":{...}}
+12:03:22 fatec/semaforo/01/status   {"online":true,"wifiRssi":-59,"uptimeS":10}
+12:05:04 fatec/semaforo/01/cmd/passagem  {"placa":"3","sinal":"RED","infracao":true}
+12:05:11 fatec/semaforo/01/cmd/passagem  {"placa":"1","sinal":"GREEN","infracao":false}
+12:05:12 fatec/semaforo/01/cmd/botao_virtual  {"pressed":true}
+12:05:12 fatec/semaforo/01/sensor/botao  {"pressed":true}
+12:05:17 fatec/semaforo/01/cmd/passagem  {"placa":"2","sinal":"YELLOW","infracao":false}
+12:05:33 fatec/semaforo/01/sensor/veiculo  {"distanceCm":32.5}
+</pre>
+<p>Recebimento das mensagens no Node-RED (painel <i>Debug</i>, à direita na Figura 3): <code>fatec/semaforo/01/status : {online: true, wifiRssi: -68, uptimeS: 20}</code> e <code>fatec/semaforo/01/estado : {light: "GREEN", remainingS: 12, durationS: 12, ...}</code>.</p>
+
+<div class="evid"><b>Entrega / evidências da etapa</b>
+<ul>
+  <li>Tabela dos tópicos MQTT: item 5.1.</li>
+  <li>Publicação das mensagens: log do assinante acima.</li>
+  <li>Recebimento das mensagens: painel Debug do Node-RED (Figura 3).</li>
+  <li>Descrição da comunicação: item 5.2.</li>
+</ul></div>
+
+<!-- ===================== 6 ===================== -->
+<h2>ETAPA 6 – Desenvolvimento do fluxo no Node-RED</h2>
+<p><b>Objetivo:</b> receber, processar, aplicar regras e encaminhar os dados.</p>
+<figure>
+  <img src="evidencias/nodered-fluxo.png" alt="Fluxo Node-RED">
+  <figcaption>Figura 3 – Fluxo “Semáforo Inteligente” no Node-RED (Node-RED 5.0.8), com mensagens MQTT chegando no painel Debug.</figcaption>
+</figure>
+
+<h3>6.1 Fluxo desenvolvido</h3>
+<p>O fluxo (<code>node-red/flows.json</code>) está organizado em cinco blocos comentados:</p>
+<table>
+  <tr><th style="width:26%">Bloco</th><th>Funcionamento</th></tr>
+  <tr><td>1. Broker MQTT</td><td>Nó <i>aedes broker</i> na porta 1883; o próprio Node-RED se conecta a ele como cliente.</td></tr>
+  <tr><td>2. Banco SQLite</td><td>Ao iniciar (<i>inject</i>), lê <code>database/schema.sql</code>, cria tabela, índices e views e carrega os totais.</td></tr>
+  <tr><td>3. Semáforo (Wokwi → dashboard)</td><td><i>mqtt in</i> → função “Estado do semáforo” → WebSocket <code>/ws/semaforo</code>. Um <i>switch</i> separa botão/HC-SR04, LEDs e status; um nó <i>rbe</i> registra apenas quando a cor muda.</td></tr>
+  <tr><td>4. Carros (dashboard → banco)</td><td>WebSocket in → “Comandos do dashboard” → “Validar passagem” → “Registrar passagem” → SQLite → “Consultar totais” → avisa o dashboard e publica <code>cmd/passagem</code> ao ESP32 (buzzer). O botão virtual é publicado em <code>cmd/botao_virtual</code>.</td></tr>
+  <tr><td>5. API HTTP</td><td><code>GET /api/passagens?limite=10</code>, <code>/api/infracoes</code>, <code>/api/estatisticas</code>, <code>/api/resumo-por-placa</code>, com tratamento de erro (<i>catch</i> → HTTP 500).</td></tr>
+</table>
+
+<h3>Regras implementadas</h3>
+<ul>
+  <li>Passagem recusada se a placa não for <code>1</code>, <code>2</code>, <code>3</code> ou <code>WOKWI</code>.</li>
+  <li>Passagem recusada se o ESP32 ainda não publicou estado ou está offline.</li>
+  <li>Passagem recusada se a mesma placa foi registrada nos últimos <b>3 s</b> (leitura duplicada).</li>
+  <li>A cor gravada é <b>sempre a última cor oficial do ESP32</b>, não a enviada pelo frontend.</li>
+  <li>Passagem com sinal VERMELHO = <b>infração</b> (<code>infracao: true</code> → 3 bipes no ESP32 e aviso “MULTA!”).</li>
+  <li>Detecção do HC-SR04 vira passagem com placa <code>WOKWI</code>.</li>
+</ul>
+
+<h3>Evidência do teste (API HTTP após a execução)</h3>
+<pre>
+GET /api/estatisticas
+{"total":18,"verde":14,"amarelo":1,"infracoes":3,"passagens_hoje":18,"infracoes_hoje":3}
+
+GET /api/infracoes
+[{"id":11,"registrado_em":"2026-10-23T15:05:04.707Z","placa":"3"},
+ {"id":10,"registrado_em":"2026-10-23T15:05:03.756Z","placa":"1"},
+ {"id":3, "registrado_em":"2026-10-23T15:04:16.125Z","placa":"3"}]
+
+GET /api/resumo-por-placa
+[{"placa":"1","passagens":7,"no_verde":6,"no_amarelo":0,"infracoes":1},
+ {"placa":"2","passagens":5,"no_verde":4,"no_amarelo":1,"infracoes":0},
+ {"placa":"3","passagens":5,"no_verde":3,"no_amarelo":0,"infracoes":2},
+ {"placa":"WOKWI","passagens":1,"no_verde":1,"no_amarelo":0,"infracoes":0}]
+</pre>
+
+<div class="evid"><b>Entrega / evidências da etapa</b>
+<ul>
+  <li>Print do fluxo Node-RED: Figura 3.</li>
+  <li>Arquivo/exportação do fluxo: <code>semaforo-inteligente/node-red/flows.json</code>.</li>
+  <li>Descrição das regras: item “Regras implementadas”.</li>
+  <li>Evidência do teste: respostas da API acima.</li>
+</ul></div>
+
+<!-- ===================== 7 ===================== -->
+<h2>ETAPA 7 – Desenvolvimento do Dashboard</h2>
+<p><b>Objetivo:</b> apresentar os dados de forma visual, clara e útil. Desenvolvido em <b>React 19 + TypeScript + Vite</b>, com cena em pixel art (rua, semáforos, carros animados e pedestre controlado pelas setas / A-D). Publicado também no GitHub Pages em modo simulação: <code>https://bellafgs.github.io/Projeto_IOT_Semafaro/?fonte=simulacao</code>.</p>
+
+<h3>7.1 Elementos do Dashboard</h3>
+<table>
+  <tr><th style="width:26%">Elemento</th><th>Implementação</th></tr>
+  <tr><td>Valores dos sensores</td><td>Cor atual e contagem regressiva do ESP32 (card “Semáforo” e display no poste); passagens detectadas, inclusive pelo HC-SR04 (“Carro WOKWI”).</td></tr>
+  <tr><td>Gráficos</td><td>Barra de distribuição das passagens por cor (verde / amarelo / vermelho).</td></tr>
+  <tr><td>Indicadores</td><td>Total de carros, taxa por minuto, multas e percentual de infrações, tempos do ciclo, modo (AUTOMÁTICO / PEDESTRE / SEM ESP32), idade da última mensagem.</td></tr>
+  <tr><td>Alertas</td><td>Barra de alertas: “Operação normal”, “Pedestre aguardando travessia”, “Dados atrasados”, ESP32 offline, Wi-Fi fraco, Node-RED desconectado; aviso “MULTA!” sobre o carro infrator e som no navegador.</td></tr>
+  <tr><td>Status dos dispositivos</td><td>Online/offline do ESP32 (Last Will), RSSI do Wi-Fi e conexão WebSocket com o Node-RED.</td></tr>
+  <tr><td>Histórico</td><td>Lista “Passagens recentes” com horário, carro, cor do sinal e marcação MULTA; histórico completo pela API.</td></tr>
+  <tr><td>Controle dos atuadores</td><td>Botão de pedestre no poste: envia <code>cmd/botao_virtual</code> ao ESP32, que altera o ciclo dos LEDs.</td></tr>
+</table>
+
+<h3>7.2 Descrição</h3>
+<p>O usuário lê o estado do cruzamento de cima para baixo: a barra de alertas resume a situação (verde = normal, azul = pedestre, vermelho = problema de comunicação); o card <b>Semáforo</b> mostra a cor oficial do ESP32 e quanto tempo falta; <b>Passagens</b> e <b>Infrações</b> mostram o volume e quantos carros avançaram no vermelho; <b>Passagens recentes</b> traz cada evento com a cor e a marcação MULTA. Na cena, o semáforo, o display de segundos e os carros reproduzem visualmente o mesmo estado.</p>
+
+<figure>
+  <img src="evidencias/dashboard-1.png" alt="Dashboard em operação normal">
+  <figcaption>Figura 4 – Operação normal: semáforo VERMELHO (PARE), 10 passagens, 2 infrações, aviso “MULTA! CARRO 1” e histórico com marcação MULTA.</figcaption>
+</figure>
+<figure>
+  <img src="evidencias/dashboard-pedestre.png" alt="Pedido de pedestre">
+  <figcaption>Figura 5 – Controle do atuador: após clicar no botão do poste, alerta “Pedestre aguardando travessia”, modo PEDESTRE e verde antecipado para o amarelo.</figcaption>
+</figure>
+<figure>
+  <img src="evidencias/dashboard-offline.png" alt="ESP32 offline">
+  <figcaption>Figura 6 – Alerta de comunicação: ESP32 desligado → “Dados atrasados (sem mensagens há mais de 8 s)” e modo “SEM ESP32”; no histórico, o registro “Carro WOKWI” gerado pelo HC-SR04.</figcaption>
+</figure>
+
+<div class="evid"><b>Entrega / evidências da etapa</b>
+<ul>
+  <li>Print do Dashboard: Figuras 4 a 6.</li>
+  <li>Evidência dos gráficos: barra de distribuição por cor (Figuras 4–6).</li>
+  <li>Evidência dos alertas: “MULTA!”, “Pedestre aguardando travessia” e “Dados atrasados” (Figuras 4, 5 e 6).</li>
+  <li>Evidência do controle dos atuadores: Figura 5 e mensagem <code>cmd/botao_virtual</code> (Etapa 5).</li>
+  <li>Descrição dos resultados: item 7.2.</li>
+</ul></div>
+
+<!-- ===================== 8 ===================== -->
+<h2>ETAPA 8 – Testes finais e apresentação</h2>
+<p><b>Objetivo:</b> validar o fluxo completo e preparar a demonstração.</p>
+<table>
+  <tr><th style="width:17%">Teste</th><th style="width:33%">Procedimento</th><th style="width:33%">Resultado esperado</th><th>Resultado obtido</th></tr>
+  <tr><td>Sincronização</td><td>Iniciar Wokwi, Node-RED e dashboard</td><td>Luzes da interface acompanham o ESP32</td><td class="ok">Aprovado</td></tr>
+  <tr><td>Respeito ao sinal</td><td>Aguardar o vermelho</td><td>Carros param na faixa e retomam no verde</td><td class="ok">Aprovado</td></tr>
+  <tr><td>Passagem</td><td>Aguardar um carro cruzar o sensor virtual</td><td>Registro no banco, atualização do painel e 1 bipe</td><td class="ok">Aprovado</td></tr>
+  <tr><td>Infração</td><td>Aguardar um carro avançar no vermelho</td><td>Aviso “MULTA!”, contagem de infrações e 3 bipes</td><td class="ok">Aprovado (Fig. 4)</td></tr>
+  <tr><td>Pedestre</td><td>Acionar o botão durante o verde</td><td>Verde encerra em até 3 s e vermelho dura 10 s</td><td class="ok">Aprovado (Fig. 5) – botão às 12:05:12, amarelo às 12:05:15, vermelho de 10 s às 12:05:18</td></tr>
+  <tr><td>HC-SR04</td><td>Simular distância &lt; 50 cm</td><td>Registro de passagem com placa WOKWI</td><td class="ok">Aprovado (Fig. 6 e API)</td></tr>
+  <tr><td>ESP32 offline</td><td>Interromper o Wokwi</td><td>Avisos de dados atrasados e falta de comunicação</td><td class="ok">Aprovado (Fig. 6)</td></tr>
+  <tr><td>Node-RED offline</td><td>Interromper o Node-RED</td><td>Alerta de desconexão e tentativa de reconexão</td><td class="ok">Aprovado</td></tr>
+</table>
+<p class="small">Observação: os testes foram executados pelo grupo com o ESP32 no Wokwi. Os prints das Figuras 3 a 6, o log MQTT e as respostas da API foram registrados em uma execução com o script <code>esp32-fake</code> (mesmos tópicos e mensagens do firmware), Node-RED e dashboard locais.</p>
+<p><b>Roteiro da demonstração:</b> (1) subir Node-RED + frontend pela tarefa do VS Code; (2) compilar o firmware no PlatformIO e iniciar o Wokwi; (3) mostrar o semáforo sincronizado no dashboard; (4) aguardar passagens e uma infração; (5) acionar o botão de pedestre (físico e virtual); (6) mover o slider do HC-SR04; (7) consultar a API; (8) parar o Wokwi para mostrar os alertas. Como alternativa sem backend, o dashboard em modo simulação está disponível no GitHub Pages.</p>
+
+<div class="evid"><b>Entrega / evidências da etapa</b>
+<ul>
+  <li>Evidências dos testes finais: tabela acima e Figuras 3 a 6.</li>
+  <li>Apresentação preparada: roteiro da demonstração.</li>
+  <li>Demonstração do fluxo completo: ESP32 → MQTT → Node-RED → SQLite → Dashboard → comando de volta ao ESP32.</li>
+</ul></div>
+
+<!-- ===================== 9 ===================== -->
+<h2>9. Relatório final do projeto</h2>
+<table>
+  <tr><th style="width:26%">Item</th><th>Resumo</th></tr>
+  <tr><td>Identificação</td><td>Semáforo Inteligente – Isabella Ferreira Gomes da Silva, Matheus Cuero Silva, Mike Willy Franguelli e Thomas Lourenço Lopes de Castro (FATEC Sorocaba).</td></tr>
+  <tr><td>Problema identificado</td><td>Falta de dados sobre fluxo e avanços de sinal em cruzamentos e ciclos fixos que não atendem o pedestre.</td></tr>
+  <tr><td>Objetivo</td><td>Semáforo conectado com pedido de travessia, registro de passagens, detecção de infrações e dashboard em tempo real.</td></tr>
+  <tr><td>Tecnologias utilizadas</td><td>ESP32, C++/Arduino, PlatformIO, Wokwi (extensão VS Code), PubSubClient, ArduinoJson, MQTT (Aedes), Node-RED 5, WebSocket, API HTTP, SQLite, React 19, TypeScript, Vite, GitHub Actions/Pages.</td></tr>
+  <tr><td>Arquitetura do sistema</td><td>ESP32 ⇄ MQTT ⇄ Node-RED ⇄ WebSocket/HTTP ⇄ Dashboard; Node-RED ⇄ SQLite (diagrama na seção 2).</td></tr>
+  <tr><td>Componentes utilizados</td><td>ESP32 DevKit C v4, 5 LEDs + 5 resistores 220 Ω, botão, HC-SR04, buzzer (Etapa 3).</td></tr>
+  <tr><td>Tópicos MQTT</td><td>6 tópicos sob <code>fatec/semaforo/01</code> (Etapa 5).</td></tr>
+  <tr><td>Fluxo Node-RED</td><td>5 blocos: broker, banco, semáforo, carros/validação, API (Etapa 6).</td></tr>
+  <tr><td>Dashboard</td><td>Cena pixel art + cards de semáforo, passagens, infrações, histórico, alertas e botão de pedestre (Etapa 7).</td></tr>
+  <tr><td>Testes realizados</td><td>8 cenários de integração, todos aprovados (Etapa 8).</td></tr>
+  <tr><td>Resultados obtidos</td><td>Sistema funcionando de ponta a ponta, com dados persistidos e consultáveis pela API.</td></tr>
+</table>
+
+<h3>9.1 Resultados</h3>
+<p><b>O projeto funcionou conforme planejado?</b> Sim. O ESP32 no Wokwi controla o ciclo do semáforo e é a fonte oficial do estado; as mensagens trafegam por MQTT até o Node-RED, que valida as passagens, grava no SQLite, devolve a confirmação ao ESP32 (buzzer) e atualiza o dashboard em tempo real. O pedido de pedestre altera o ciclo como especificado, as infrações são identificadas e as falhas de comunicação geram alertas. Em relação à proposta inicial, o <b>ajuste automático dos tempos conforme o volume de tráfego</b> e o <b>servomotor</b> ficaram como evoluções futuras: na versão final os tempos são fixos (12/3/8 s), com ajuste apenas pelo pedido de pedestre, e os carros do dashboard são simulados no frontend.</p>
+
+<h3>9.2 Dificuldades e soluções</h3>
+<table>
+  <tr><th style="width:42%">Dificuldade</th><th>Solução adotada</th></tr>
+  <tr><td>ESP32 dentro do Wokwi não alcançava o broker na máquina (erro MQTT <code>estado -2</code>).</td><td>Uso do host <code>host.wokwi.internal</code> (gateway da extensão do VS Code), broker Aedes no Node-RED na porta 1883 e liberação no firewall do Windows; reconexão a cada 3 s sem travar o semáforo.</td></tr>
+  <tr><td>Wokwi não encontrava <code>firmware.bin</code> / <code>firmware.elf</code>.</td><td>Compilar pelo PlatformIO (ambiente <code>esp32dev</code>) e apontar o <code>wokwi.toml</code> para <code>.pio/build/esp32dev/</code> com caminhos relativos.</td></tr>
+  <tr><td>PowerShell bloqueando <code>npm.ps1</code>.</td><td>Uso de <code>npm.cmd</code> nos comandos e nas tarefas do VS Code.</td></tr>
+  <tr><td>Divergência entre a cor vista pelo dashboard e a cor real do ESP32 no momento da passagem.</td><td>Node-RED grava sempre a última cor oficial publicada pelo ESP32.</td></tr>
+  <tr><td>Leituras duplicadas do mesmo carro.</td><td>Janela de 3 s por placa na validação e detecção por borda no HC-SR04.</td></tr>
+  <tr><td>Detectar queda do ESP32.</td><td>Last Will MQTT com status retido + alerta de “dados atrasados” após 8 s sem mensagens.</td></tr>
+  <tr><td>Testar sem abrir o Wokwi / sem backend.</td><td>Script <code>esp32-fake</code> (mesmos tópicos e JSON) e modo <code>?fonte=simulacao</code>, publicado no GitHub Pages.</td></tr>
+  <tr><td>Som no navegador não tocava.</td><td>Áudio liberado após a primeira interação do usuário com a página (política dos navegadores).</td></tr>
+</table>
+
+<!-- ===================== 10 ===================== -->
+<h2>10. Entrega final</h2>
+<table>
+  <tr><th style="width:36%">Item</th><th>Situação / local</th></tr>
+  <tr><td>Roteiro completamente preenchido e atualizado</td><td class="ok">Este documento</td></tr>
+  <tr><td>Código do ESP32 / PlatformIO</td><td><code>semaforo-inteligente/wokwi/</code></td></tr>
+  <tr><td>Projeto Wokwi</td><td><code>wokwi/diagram.json</code> + <code>wokwi.toml</code> (extensão Wokwi do VS Code)</td></tr>
+  <tr><td>Fluxo Node-RED</td><td><code>semaforo-inteligente/node-red/flows.json</code></td></tr>
+  <tr><td>Dashboard</td><td><code>semaforo-inteligente/frontend/</code> e GitHub Pages (modo simulação)</td></tr>
+  <tr><td>Banco de dados</td><td><code>semaforo-inteligente/database/schema.sql</code></td></tr>
+  <tr><td>Relatório final</td><td>Seção 9 deste documento</td></tr>
+  <tr><td>Imagens/prints das etapas e testes</td><td><code>docs/roteiro/evidencias/</code> e Figuras 1–6</td></tr>
+  <tr><td>Arquivo da apresentação</td><td><span class="fill" style="min-width:80%"></span></td></tr>
+</table>
+<p>Repositório: https://github.com/BellaFGS/Projeto_IOT_Semafaro &nbsp;·&nbsp; Data limite da entrega: ____/____/________</p>
+
+<!-- ===================== 11 ===================== -->
+<h2 class="page-break">11. Critérios de avaliação</h2>
+<p>A avaliação considerará o desenvolvimento técnico, a documentação, os testes, a integração das tecnologias e a apresentação. A pontuação pode ser adaptada pelo professor.</p>
+<table>
+  <tr><th style="width:32%">Critério</th><th>O que será observado</th><th style="width:9%">Valor</th><th style="width:9%">Nota</th></tr>
+  <tr><td>1. Planejamento e definição do problema</td><td>Problema, objetivo, requisitos e organização inicial.</td><td>1,0</td><td></td></tr>
+  <tr><td>2. Wokwi e montagem do circuito</td><td>Circuito, sensores, atuadores e funcionamento da simulação.</td><td>1,0</td><td></td></tr>
+  <tr><td>3. PlatformIO e código ESP32</td><td>Organização do código, leitura dos sensores e funcionamento do ESP32.</td><td>1,0</td><td></td></tr>
+  <tr><td>4. Comunicação MQTT</td><td>Broker, tópicos, publicação e recebimento das mensagens.</td><td>1,0</td><td></td></tr>
+  <tr><td>5. Node-RED</td><td>Fluxo, processamento, regras e integração com os dispositivos.</td><td>1,0</td><td></td></tr>
+  <tr><td>6. Dashboard</td><td>Visualização, gráficos, indicadores, alertas e/ou controles.</td><td>1,0</td><td></td></tr>
+  <tr><td>7. Testes e funcionamento</td><td>Testes normais, situações de alerta e evidências dos resultados.</td><td>1,0</td><td></td></tr>
+  <tr><td>8. Documentação e atualização do roteiro</td><td>Registro contínuo, evidências, dificuldades, soluções e versão final atualizada.</td><td>1,0</td><td></td></tr>
+  <tr><td>9. Integração e criatividade</td><td>Integração das tecnologias e adequação da solução ao problema.</td><td>1,0</td><td></td></tr>
+  <tr><td>10. Apresentação</td><td>Clareza, organização, domínio do projeto e demonstração prática.</td><td>1,0</td><td></td></tr>
+  <tr><th colspan="2">TOTAL</th><th>10,0</th><th></th></tr>
+</table>
+<p><b>Nota final:</b> ______ / 10,0</p>
+<p><b>Observações do professor:</b></p>
+<div class="lines"><div></div><div></div><div></div><div></div></div>
+
+</body>
+</html>
