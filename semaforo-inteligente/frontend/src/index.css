@@ -1,0 +1,103 @@
+/*
+ * Identidade visual "Semáforo.IoT" — pixel art noturno.
+ * Painéis em azul-asfalto com borda dura, texto creme e as três cores do sinal
+ * como cores de destaque. Títulos em Silkscreen, corpo em Pixelify Sans
+ * (as duas com acentos do português).
+ */
+:root {
+  --px-ink: #0b0d1a;
+  --px-panel: #161a32;
+  --px-panel-2: #1e2448;
+  --px-line: #333b72;
+  --px-text: #f6f0d8;
+  --px-muted: #9ea6d6;
+  --px-dim: #5d6496;
+
+  --px-red: #ff4d5e;
+  --px-yellow: #ffc23d;
+  --px-green: #3ee87a;
+  --px-cyan: #55d6ff;
+  --px-violet: #b48cff;
+
+  --px-sky: #87ceeb;
+
+  --font-title: 'Silkscreen', monospace;
+  --font-body: 'Pixelify Sans', monospace;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: var(--font-body);
+  background-color: var(--px-sky);
+  color: var(--px-text);
+  user-select: none;
+  -webkit-font-smoothing: none;
+  font-smooth: never;
+}
+
+/* Renderizacao crisp para sprites pixel art */
+.pixel-art {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+/* Painel padrão: borda dura de 4px, realce interno e sombra deslocada sem blur */
+.px-panel {
+  background: var(--px-panel);
+  border: 4px solid var(--px-ink);
+  box-shadow:
+    inset 0 0 0 2px var(--px-line),
+    inset -4px -4px 0 0 rgba(0, 0, 0, 0.28),
+    4px 4px 0 0 rgba(11, 13, 26, 0.45);
+}
+
+.px-title {
+  font-family: var(--font-title);
+  letter-spacing: 0.5px;
+  line-height: 1.4;
+}
+
+@keyframes px-blink {
+  50% { opacity: 0.25; }
+}
+
+.px-blink {
+  animation: px-blink 1s steps(1, end) infinite;
+}
+
+/* Sacolejo de 1 px do carro andando */
+@keyframes px-bounce {
+  50% { transform: translateY(-2px); }
+}
+
+.px-bounce {
+  animation: px-bounce 0.24s steps(1, end) infinite;
+}
+
+/* Feixe do HC-SR04 correndo enquanto detecta um carro */
+@keyframes px-beam {
+  to { stroke-dashoffset: -88; }
+}
+
+.px-beam-on {
+  animation: px-beam 0.6s steps(4, end) infinite;
+}
+
+/* Balão do apito do sensor */
+@keyframes px-bip {
+  0% { transform: translateY(6px) scale(0.6); opacity: 0; }
+  30% { transform: translateY(-2px) scale(1.1); opacity: 1; }
+  100% { transform: translateY(-6px) scale(1); opacity: 0; }
+}
+
+.px-bip {
+  animation: px-bip 1.6s steps(8, end) forwards;
+}

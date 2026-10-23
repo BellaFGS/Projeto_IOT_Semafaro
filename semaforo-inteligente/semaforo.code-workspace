@@ -1,0 +1,74 @@
+{
+  "folders": [
+    { "name": "wokwi", "path": "wokwi" },
+    { "name": "node-red", "path": "node-red" },
+    { "name": "database", "path": "database" },
+    { "name": "frontend", "path": "frontend" },
+    { "name": "projeto", "path": ".." }
+  ],
+  "settings": {
+    "files.exclude": {
+      "**/node_modules": true,
+      "**/.pio": true
+    },
+    "search.exclude": {
+      "**/node_modules": true,
+      "**/.pio": true,
+      "**/dist": true
+    }
+  },
+  "extensions": {
+    "recommendations": [
+      "wokwi.wokwi-vscode",
+      "platformio.platformio-ide"
+    ]
+  },
+  "tasks": {
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "1. Node-RED (broker MQTT + regras + banco + API)",
+        "type": "shell",
+        "command": "npm.cmd start",
+        "options": { "cwd": "${workspaceFolder:node-red}" },
+        "isBackground": true,
+        "problemMatcher": [],
+        "presentation": { "panel": "dedicated", "group": "semaforo" }
+      },
+      {
+        "label": "2. Frontend (dashboard em http://localhost:5173)",
+        "type": "shell",
+        "command": "npm.cmd run dev",
+        "options": { "cwd": "${workspaceFolder:frontend}" },
+        "isBackground": true,
+        "problemMatcher": [],
+        "presentation": { "panel": "dedicated", "group": "semaforo" }
+      },
+      {
+        "label": "Subir Node-RED + Frontend",
+        "dependsOn": [
+          "1. Node-RED (broker MQTT + regras + banco + API)",
+          "2. Frontend (dashboard em http://localhost:5173)"
+        ],
+        "problemMatcher": []
+      },
+      {
+        "label": "Firmware: compilar (PlatformIO)",
+        "type": "shell",
+        "command": "${env:USERPROFILE}/.platformio/penv/Scripts/pio.exe run",
+        "options": { "cwd": "${workspaceFolder:wokwi}" },
+        "group": "build",
+        "problemMatcher": []
+      },
+      {
+        "label": "ESP32 de teste (sem Wokwi: p = botão, c = sensor)",
+        "type": "shell",
+        "command": "npm run esp32-fake",
+        "options": { "cwd": "${workspaceFolder:node-red}" },
+        "isBackground": true,
+        "problemMatcher": [],
+        "presentation": { "panel": "dedicated" }
+      }
+    ]
+  }
+}

@@ -1,0 +1,275 @@
+.dash {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.dash > * {
+  pointer-events: auto;
+}
+
+/* ---------- Barra superior ---------- */
+.dash-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 8px 12px;
+}
+
+.dash-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dash-logo {
+  display: grid;
+  gap: 2px;
+  padding: 3px;
+  background: var(--px-ink);
+}
+
+.dash-logo span {
+  width: 8px;
+  height: 8px;
+  background: var(--px-dim);
+}
+
+.dash-logo span.on-RED { background: var(--px-red); }
+.dash-logo span.on-YELLOW { background: var(--px-yellow); }
+.dash-logo span.on-GREEN { background: var(--px-green); }
+
+.dash-brand h1 {
+  font-size: 16px;
+  color: var(--px-text);
+}
+
+.dash-brand h1 b {
+  color: var(--px-yellow);
+  font-weight: normal;
+}
+
+.dash-brand p {
+  font-size: 13px;
+  color: var(--px-muted);
+}
+
+.dash-toggle {
+  font-family: var(--font-title);
+  font-size: 12px;
+  color: var(--px-ink);
+  background: var(--px-cyan);
+  border: none;
+  padding: 8px 10px;
+  box-shadow: inset -3px -3px 0 rgba(0, 0, 0, 0.3), 3px 3px 0 var(--px-ink);
+  cursor: pointer;
+}
+
+.dash-toggle:active {
+  transform: translate(2px, 2px);
+  box-shadow: inset -3px -3px 0 rgba(0, 0, 0, 0.3), 1px 1px 0 var(--px-ink);
+}
+
+/* ---------- Cartões ---------- */
+.dash-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 8px;
+}
+
+.dash-card {
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 116px;
+}
+
+.dash-card h2 {
+  font-family: var(--font-title);
+  font-size: 11px;
+  color: var(--px-muted);
+  font-weight: normal;
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.dash-big {
+  font-family: var(--font-title);
+  font-size: 24px;
+  line-height: 1.1;
+}
+
+.dash-big small {
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--px-muted);
+  margin-left: 4px;
+}
+
+.dash-sub {
+  font-size: 14px;
+  color: var(--px-muted);
+}
+
+.dash-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.dash-tag {
+  font-family: var(--font-title);
+  font-size: 11px;
+  padding: 4px 6px;
+  color: var(--px-ink);
+  background: var(--px-muted);
+}
+
+.c-RED { color: var(--px-red); }
+.c-YELLOW { color: var(--px-yellow); }
+.c-GREEN { color: var(--px-green); }
+.c-cyan { color: var(--px-cyan); }
+.c-violet { color: var(--px-violet); }
+.c-muted { color: var(--px-muted); }
+
+.bg-RED, .bg-critical { background: var(--px-red); }
+.bg-YELLOW, .bg-warning { background: var(--px-yellow); }
+.bg-GREEN { background: var(--px-green); }
+.bg-info { background: var(--px-cyan); }
+
+/* Barra segmentada de progresso */
+.px-segments {
+  display: flex;
+  gap: 2px;
+  height: 8px;
+}
+
+.px-segments span {
+  flex: 1;
+  background: var(--px-ink);
+}
+
+/* Gráficos */
+.px-chart {
+  width: 100%;
+  height: 40px;
+  display: block;
+  background: var(--px-ink);
+  shape-rendering: crispEdges;
+}
+
+/* Alertas e eventos */
+/* Alertas ativos dentro da barra do título, ocupando o espaço livre */
+.dash-alerts {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  padding: 4px 10px;
+  font-size: 15px;
+  border-left: 2px solid var(--px-line);
+}
+
+.dash-alert {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dash-alert i,
+.dash-event i {
+  width: 8px;
+  height: 8px;
+  flex: none;
+}
+
+.dash-events {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 14px;
+  overflow: hidden;
+}
+
+.dash-event {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.dash-event time {
+  flex: none;
+  font-family: var(--font-title);
+  font-size: 10px;
+  color: var(--px-dim);
+}
+
+/* Uma linha por evento: o card não estica a fileira e o painel não cobre o semáforo */
+.dash-event span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+
+/* Barra de passagens por cor do sinal */
+.px-split {
+  display: flex;
+  gap: 2px;
+  height: 12px;
+  background: var(--px-ink);
+  padding: 2px;
+}
+
+.px-split span {
+  min-width: 4px;
+}
+
+.px-split-empty {
+  flex: 1;
+  background: var(--px-panel-2);
+}
+
+/* Lista de passagens */
+.dash-pass {
+  display: grid;
+  grid-template-columns: auto auto auto 1fr;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  font-size: 14px;
+}
+
+.dash-pass time {
+  font-family: var(--font-title);
+  font-size: 10px;
+  color: var(--px-dim);
+}
+
+.dash-pass .dash-tag {
+  font-size: 9px;
+  padding: 2px 4px;
+}
+
+.dash-pass b {
+  justify-self: end;
+  font-family: var(--font-title);
+  font-size: 10px;
+  font-weight: normal;
+  color: var(--px-red);
+}
